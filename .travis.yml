@@ -14,9 +14,9 @@ before_install:
     WDIR=${PWD}
     cd ..
     R -e "install.packages(c('devtools'), type = 'source')"
-    R -e "devtools::install_github("tsmodels/tsmethods"))"
-    R -e "devtools::install_github("tsmodels/tsaux"))"
-    R -e "devtools::install_github("tsmodels/tsets"))"
+    R -e "devtools::install_github('tsmodels/tsmethods'))"
+    R -e "devtools::install_github('tsmodels/tsaux'))"
+    R -e "devtools::install_github('tsmodels/tsets'))"
     cd ${WDIR}
 
 after_failure:
