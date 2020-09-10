@@ -64,7 +64,7 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
     Y <- aperm(f$Y, map = list(3,2,1))
     States <- aperm(f$States, list(3,2,1))
     forc_dates <- as.character(forc_dates)
-    if (any(object$spec$transform$lambda != 1)) {
+    if (!is.null(object$spec$transform$lambda)) {
         for (i in 1:dim(Y)[3]) {
             Y[,,i] <- box_cox_inverse(Y[,,i], object$spec$transform$lambda[i])
         }

@@ -85,7 +85,7 @@ simulate.tsvets.estimate <- function(object, nsim = 1, seed = NULL, h = NULL, ne
     Y <- aperm(f$Y, map = list(3,2,1))
     States <- aperm(f$States, list(3,2,1))
     sim_dates <- as.character(sim_dates)
-    if (any(object$spec$transform$lambda != 1)) {
+    if (!is.null(object$spec$transform$lambda)) {
         for (i in 1:dim(Y)[3]) {
             Y[,,i] <- box_cox_inverse(Y[,,i], object$spec$transform$lambda[i])
         }

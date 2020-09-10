@@ -1,8 +1,5 @@
 box_cox_inverse <- function(y, lambda = 1)
 {
-    if (lambda == 1) {
-        return(y)
-    }
     if (lambda < 0) {
         y[y > -1/lambda] <- NA
     }

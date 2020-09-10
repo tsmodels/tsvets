@@ -39,7 +39,7 @@ tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
     }
     newindex <- index(y)
     yneworig <- y
-    if (any(object$spec$transform$lambda != 1)) {
+    if (!is.null(object$spec$transform)) {
         y <- object$spec$transform$transform(y, object$spec$transform$lambda)
     }
     xseed <- tail(object$States, 1)
@@ -53,11 +53,12 @@ tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
     env$ymat <- t(rbind(matrix(0, ncol = ncol(y), nrow = 1), coredata(y)))
     f <- vets_filter(pars, env)
     # augment the original object and return back
-    if (any(object$spec$transform$lambda != 1)) {
+    if (!is.null(object$spec$transform)) {
         y_fit <- xts(object$spec$transform$inverse(f$fitted[-1,], object$spec$transform$lambda), newindex)
     } else {
         y_fit <- xts(f$fitted[-1,], newindex)
     }
+    
     object$States <- rbind(object$States, f$States[-1,])
     object$fitted <- rbind(object$fitted, y_fit)
     object$Error <- rbind(object$Error, f$Error[-1,])

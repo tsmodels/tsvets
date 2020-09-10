@@ -35,12 +35,13 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
   sol$elapsed <- difftime(Sys.time(), tic, "minutes")
   sol$negative_llh <- llh
   filt <- vets_filter(pars, env)
-  if (any(object$transform$lambda != 1)) {
-    fit <- object$transform$inverse(filt$fitted[-1,], object$transform$lambda)
-    fit <- xts(fit, object$target$index)
+  if (!is.null(object$transform)) {
+      fit <- object$transform$inverse(filt$fitted[-1,], object$transform$lambda)
   } else {
-    fit <- xts(filt$fitted[-1,], object$target$index)
+      fit <- filt$fitted[-1,]
   }
+  fit <- xts(fit, object$target$index)
+  
   object$vets_env$Amat <- filt$Amat
   object$vets_env$Fmat <- filt$Fmat
   object$vets_env$Gmat <- filt$Gmat
