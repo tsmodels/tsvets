@@ -61,7 +61,7 @@ vets_llh_equicor <- function(pars, env)
     Fmat[which(as.logical(is.na(Fmat)))] <- env$Amat[,env$Phi_index[1]:env$Phi_index[2]]
   }
   if (env$X_index[1] >= 0) {
-    beta <- env$Amat[,env$X_index[1]:env$X_index[2]]
+    beta <- env$Amat[,env$X_index[1]:env$X_index[2], drop = FALSE]
     xreg <- env$xreg
   } else {
     beta <- matrix(1, ncol = env$model[2], nrow = 1)
@@ -93,7 +93,7 @@ vets_llh_shrink <- function(pars, env)
     Fmat[which(as.logical(is.na(Fmat)))] <- env$Amat[,env$Phi_index[1]:env$Phi_index[2]]
   }
   if (env$X_index[1] >= 0) {
-    beta <- env$Amat[,env$X_index[1]:env$X_index[2]]
+    beta <- env$Amat[,env$X_index[1]:env$X_index[2], drop = FALSE]
     xreg <- env$xreg
   } else {
     beta <- matrix(1, ncol = env$model[2], nrow = 1)
@@ -126,7 +126,7 @@ vets_llh_diag <- function(pars, env)
     Fmat[which(as.logical(is.na(Fmat)))] <- env$Amat[,env$Phi_index[1]:env$Phi_index[2]]
   }
   if (env$X_index[1] >= 0) {
-    beta <- env$Amat[,env$X_index[1]:env$X_index[2]]
+    beta <- env$Amat[,env$X_index[1]:env$X_index[2], drop = FALSE]
     xreg <- env$xreg
   } else {
     beta <- matrix(1, ncol = env$model[2], nrow = 1)
@@ -157,7 +157,7 @@ vets_llh_full <- function(pars, env)
     Fmat[which(as.logical(is.na(Fmat)))] <- env$Amat[,env$Phi_index[1]:env$Phi_index[2]]
   }
   if (env$X_index[1] >= 0) {
-    beta <- env$Amat[,env$X_index[1]:env$X_index[2]]
+    beta <- env$Amat[,env$X_index[1]:env$X_index[2], drop = FALSE]
     xreg <- env$xreg
   } else {
     beta <- matrix(1, ncol = env$model[2], nrow = 1)
