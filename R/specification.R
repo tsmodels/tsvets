@@ -31,7 +31,11 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   y_orig <- y
   period <- sampling_frequency(index(y))
   lambdas <- rep(1, n)
-  if (!is.null(lambda) & all(lambda == 1)) lambda <- NULL
+  if (!is.null(lambda)) {
+      if (all(!is.na(lambda)) & all(lambda == 1)) {
+          lambda <- NULL
+      }
+  }
   if (!is.null(lambda)) {
     transform <- box_cox(lambda = lambda, lower = lambda_lower, upper = lambda_upper, multivariate = TRUE)
     y <- transform$transform(y = y, frequency = frequency)
