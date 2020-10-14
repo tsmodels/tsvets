@@ -13,14 +13,14 @@ control = list(trace = 1, iter.max = 200, eval.max = 1000), ...)
 An object of class \dQuote{tsvets.spec}.
 }
 \item{solver}{
-Currently \dQuote{L-BFGS-B} from \dQuote{optim}, \dQuote{nlminb} and \dQuote{solnp} bound constrained
+Currently \dQuote{L-BFGS-B} from \dQuote{optim}, \dQuote{nlminb}, \dQuote{solnp} and \dQuote{gosolnp} bound constrained
 solvers are supported
 }
 \item{control}{
 Control parameters for the solvers.
 }
 \item{\dots}{
-Not currently used.
+Currently allowed for passing additional arguments to the \dQuote{gosolnp} solver.
 }
 }
 \details{

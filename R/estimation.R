@@ -29,6 +29,10 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
     sol <- solnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env)
     pars <- sol$pars
     llh <- tail(sol$values, 1)
+  } else if (solver == "gosolnp") {
+      sol <- gosolnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env, ...)
+      pars <- sol$pars
+      llh <- tail(sol$values, 1)
   } else {
     stop("\nunrecognized solver")
   }

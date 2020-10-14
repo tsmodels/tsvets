@@ -1,0 +1,3 @@
+# 2020-10-13 v0.3.7 [AG]
+- Added gosolnp solver which provides better starting values for difficult problems.
+- Added Changelog to package
