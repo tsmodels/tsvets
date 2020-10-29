@@ -407,7 +407,7 @@ ss_mat_xreg <- function(object, counter)
             xmat[use, 1] <- paste0("Beta[",use,"_",i,"]")
             estimate[use] <- 1
             index[use] <- k + 1:length(use)
-            k <- k + 1:length(use)
+            k <- k + length(use)
             assign("k", k, envir = env)
         }
         k <- env$k

@@ -53,7 +53,7 @@ tsdecompose.tsvets.estimate <- function(object, ...)
         Seasonal <- NULL
     }
     if (object$spec$xreg$include_xreg) {
-        beta <- object$spec$vets_env$Amat[,object$spec$vets_env$X_index[1]:object$spec$vets_env$X_index[2]]
+        beta <- object$spec$vets_env$Amat[,object$spec$vets_env$X_index[1]:object$spec$vets_env$X_index[2], drop = FALSE]
         xreg <- object$spec$xreg$xreg
         # contribution of weighted X to each Y
         X <- xts(t(beta %*% t(xreg)), object$spec$target$index)
