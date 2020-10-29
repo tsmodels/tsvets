@@ -1,3 +1,7 @@
+# 2020-10-29 v0.3.8 [AG]
+- Added xreg group wise pooling option to the xreg_include. Also fixed an issue regarding the
+indexing of xreg_include (added byrow = T to the Matrix construction).
+
 # 2020-10-13 v0.3.7 [AG]
 - Added gosolnp solver which provides better starting values for difficult problems.
 - Added Changelog to package

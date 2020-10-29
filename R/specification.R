@@ -180,7 +180,7 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
     L$xreg_include <- xreg_include
     L$xreg <- xreg
     X <- ss_mat_xreg(L, counter = k)
-    beta <- Matrix(as.numeric(X$parameters), ncol = n, nrow = ncol(xreg))
+    beta <- Matrix(as.numeric(X$parameters), ncol = n, nrow = ncol(xreg), byrow = TRUE)
     i_index <- c(i_index, X$index)
     e_index <- c(e_index, X$estimate)
     lower_index <- c(lower_index, X$lower)

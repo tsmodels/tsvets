@@ -41,8 +41,12 @@ An xts matrix of external regressors.
 }
 \item{xreg_include}{
 A matrix of dimension ncol(y) by ncol(xreg) populated with
-either 0, 1 or 2 (0 = no beta, 1 = individual beta and 
-2 = grouped beta). 
+either 0, 1 or 2+ (0 = no beta, 1 = individual beta and 
+2 = grouped beta). It is also possible to have group wise pooling. 
+For instance 2 variables sharing one pooled estimates, and 3 other 
+variables sharing another grouped estimate would have values of
+(2,2,3,3,3). The index for group wise pooling starts at 2 and should
+be incremented for each new group added.
 }
 \item{lambda}{
 The Box Cox power transformation vector (see \code{box_cox}) in the

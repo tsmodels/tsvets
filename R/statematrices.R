@@ -407,15 +407,21 @@ ss_mat_xreg <- function(object, counter)
             xmat[use, 1] <- paste0("Beta[",use,"_",i,"]")
             estimate[use] <- 1
             index[use] <- k + 1:length(use)
-            assign("k",k + length(use),envir = env)
+            k <- k + 1:length(use)
+            assign("k", k, envir = env)
         }
         k <- env$k
-        use <- which(xin[,i] == 2)
+        use <- which(xin[,i] >= 2)
         if (length(use) > 0 ) {
-            xmat[use, 1] <- paste0("Beta[",i,"]")
-            estimate[use[1]] <- 1
-            index[use] <- k + 1
-            assign("k",k + 1,envir = env)
+            u <- unique(xin[use,i])
+            xmat[use, 1] <- paste0("Beta[",xin[use,i], "_", i,"]")
+            zindex <- sapply(1:length(unique(xin[use,i])), function(j) which(xin[use,i] == u[j])[1])
+            estimate[use[zindex]] <- 1
+            for(j in 1:length(u)) {
+                index[which(xin[,i] == u[j])] <- k + 1
+                k <- k + 1
+            }
+            assign("k",k, envir = env)
         }
         return(list(xmat = xmat, estimate = estimate, index = index))
     })
