@@ -55,7 +55,8 @@ inline
 double
 power_iterations(const arma::mat& inp_mat, const double err_tol = 1.0e-04, const int max_iter = 1000)
 {
-    arma::vec b = arma::randu(inp_mat.n_cols) + 0.2;
+    // arma::vec b = arma::randu(inp_mat.n_cols) + 0.2;
+    arma::vec b = arma::ones(inp_mat.n_cols) - 0.02;
 
     int iter = 0;
     double err = 2*err_tol;
@@ -88,7 +89,8 @@ inline
 double
 power_iterations_fast(const arma::mat& inp_mat)
 {
-    arma::vec b = arma::randu(inp_mat.n_cols) + 0.2;
+    // arma::vec b = arma::randu(inp_mat.n_cols) + 0.2;
+    arma::vec b = arma::ones(inp_mat.n_cols) - 0.02;
 
     for (int i = 0; i < 200; ++i) {
         b = inp_mat * b;
