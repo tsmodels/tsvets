@@ -1,3 +1,8 @@
+# 2021-04-08 v0.3.9 [AG]
+- Added nloptr solver which is faster (particularly useful for larger problems), with customization
+of the algorithm.
+- ToDo: use BFGS C++ version so that overhead is reduced.
+
 # 2020-10-29 v0.3.8 [AG]
 - Added xreg group wise pooling option to the xreg_include. Also fixed an issue regarding the
 indexing of xreg_include (added byrow = T to the Matrix construction).

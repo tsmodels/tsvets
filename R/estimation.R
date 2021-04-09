@@ -33,6 +33,16 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
       sol <- gosolnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env, ...)
       pars <- sol$pars
       llh <- tail(sol$values, 1)
+  } else if (solver == "nloptr") {
+    sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_GN_MLSL_LDS", xtol_rel = 1e-8, maxeval = 1000, maxtime = 60*2,
+                                                                                       local_opts = list(algorithm = "NLOPT_LN_NELDERMEAD"), print_level = 0))
+    pars <- sol$solution
+    if (is.null(control$maxeval)) maxeval <- 2000 else maxeval <- control$maxeval
+    if (is.null(control$xtol_rel)) xtol_rel <- 1e-8 else maxeval <- control$xtol_rel
+    sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_LN_COBYLA", maxeval = maxeval, xtol_rel = xtol_rel, print_level = as.integer(control$trace)))
+    pars <- sol$solution
+    llh <- sol$objective
+    sol$par <- pars
   } else {
     stop("\nunrecognized solver")
   }
