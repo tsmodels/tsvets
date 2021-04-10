@@ -38,7 +38,7 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
                                                                                        local_opts = list(algorithm = "NLOPT_LN_NELDERMEAD"), print_level = 0))
     pars <- sol$solution
     if (is.null(control$maxeval)) maxeval <- 2000 else maxeval <- control$maxeval
-    if (is.null(control$xtol_rel)) xtol_rel <- 1e-8 else maxeval <- control$xtol_rel
+    if (is.null(control$xtol_rel)) xtol_rel <- 1e-8 else xtol_rel <- control$xtol_rel
     sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_LN_COBYLA", maxeval = maxeval, xtol_rel = xtol_rel, print_level = as.integer(control$trace)))
     pars <- sol$solution
     llh <- sol$objective
