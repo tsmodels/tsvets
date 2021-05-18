@@ -1,3 +1,8 @@
+# 2021-05-17 v0.4.0 [AG]
+- Prediction table now includes the error (innovations) used as a tsmodel.predict 
+class with original series being the estimated model residuals (with raw = TRUE 
+so that it is on the same scale as the prediction innovations).
+
 # 2021-04-08 v0.3.9 [AG]
 - Added nloptr solver which is faster (particularly useful for larger problems), with customization
 of the algorithm.

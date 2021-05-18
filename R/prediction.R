@@ -62,6 +62,7 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
     model <- c(h, nsim, NCOL(object$fitted), ifelse(object$spec$xreg$include_xreg, 1, 0))
     f <- vets_cpp_predict(model, S, Amat, Fmat, Hmat, Gmat, istate = xseed, X = X, beta)
     Y <- aperm(f$Y, map = list(3,2,1))
+    E <- aperm(f$Error, map = list(3,2,1))
     States <- aperm(f$States, list(3,2,1))
     forc_dates <- as.character(forc_dates)
     if (!is.null(object$spec$transform$lambda)) {
@@ -69,6 +70,7 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
             Y[,,i] <- box_cox_inverse(Y[,,i], object$spec$transform$lambda[i])
         }
     }
+    original_errors <- residuals(object, raw = TRUE)
     out <- lapply(1:NCOL(object$fitted), function(i){
        p <- Y[,,i]
        if (NCOL(p) == 1) p <- matrix(p, ncol = 1)
@@ -77,8 +79,15 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
        attr(p, "date_class") <- date_class
        p <- list(original_series = zoo(object$spec$target$y_orig[,i], object$spec$target$index), distribution = p)
        class(p) <- "tsmodel.predict"
+       error_i <- E[,,i]
+       colnames(error_i) <- forc_dates
+       class(error_i) <- "tsmodel.distribution"
+       L <- list(original_series = as.zoo(original_errors[,i]), distribution = error_i)
+       class(L) <- "tsmodel.predict"
        td <- .tsdecompose_predict(States, i, object, forc_dates, newxreg = X[,-1])
-       data.table(series = object$spec$target$y_names[i], Level = list(td$Level), Slope = list(td$Slope), Seasonal = list(td$Seasonal), X = list(td$X), Predicted = list(p))
+       data.table(series = object$spec$target$y_names[i], Level = list(td$Level), 
+                  Slope = list(td$Slope), Seasonal = list(td$Seasonal), 
+                  X = list(td$X), Error = list(L), Predicted = list(p))
     })
     out <- rbindlist(out)
     L <- list(prediction_table = out, nsim = nsim, h = h, spec = object$spec)

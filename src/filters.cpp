@@ -329,10 +329,12 @@ Rcpp::List vets_cpp_predict(Rcpp::NumericVector model, arma::mat S, arma::mat Am
     arma::cube simY(n, h, nsim);
     arma::cube simStates(n_states, h, nsim);
     arma::mat Y = arma::mat(n, h + 1);
+    arma::cube E(n, h, nsim);
     arma::mat States = arma::mat(n_states, h + 1);
     for(j=0;j<nsim;j++){
       arma::mat R = rmvnorm(h + 1, mu, S);
       R = R.t();
+      E.slice(j) = R.cols(1,h);
       Y.fill(0);
       States.fill(0);
       States.col(0) = istate;
@@ -345,9 +347,11 @@ Rcpp::List vets_cpp_predict(Rcpp::NumericVector model, arma::mat S, arma::mat Am
       }
       simY.slice(j) = Y.cols(1, h);
       simStates.slice(j) = States.cols(1, h);
+      
     }
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("Y") = simY,
-                                           Rcpp::Named("States") = simStates);
+                                           Rcpp::Named("States") = simStates,
+                                           Rcpp::Named("Error") = E);
     return(output);
   } catch( std::exception &ex ) {
     forward_exception_to_r( ex );
