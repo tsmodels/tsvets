@@ -77,7 +77,7 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
                                xreg = xreg_train, xreg_include = xreg_g, group = object$model$group,
                                frequency = object$target$frequency, lambda = NA, lambda_lower = 0, 
                                lambda_upper = 1, dependence = object$dependence$type, cores = 1)
-        mod <- estimate(spec, solver = solver)
+        mod <- estimate(spec, solver = solver, ...)
         p <- predict(mod, h = horizon[i], newxreg = xreg_test, forc_dates = index(y_test))
         if (save_output) {
             saveRDS(mod, file = paste0(save_dir,"/model_", seqdates[i], ".rds"))

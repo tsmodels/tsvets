@@ -11,3 +11,8 @@ box_cox_inverse <- function(y, lambda = 1)
     }
     return(y)
 }
+
+x_initialization <- function(x)
+{
+    
+}

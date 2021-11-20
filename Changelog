@@ -1,3 +1,8 @@
+# 2021-11-03 v0.4.1 [AG]
+- Added autodiff option in estimation function which calls the tsvetsad package.
+Currently optim (L-BFGS-B) and nlminb solvers supported for autodiff, and option
+for use_hessian also included (for nlminb only).
+
 # 2021-05-17 v0.4.0 [AG]
 - Prediction table now includes the error (innovations) used as a tsmodel.predict 
 class with original series being the estimated model residuals (with raw = TRUE 

@@ -80,6 +80,7 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
        p <- list(original_series = zoo(object$spec$target$y_orig[,i], object$spec$target$index), distribution = p)
        class(p) <- "tsmodel.predict"
        error_i <- E[,,i]
+       if (NCOL(error_i) == 1) error_i <- matrix(error_i, ncol = 1)
        colnames(error_i) <- forc_dates
        class(error_i) <- "tsmodel.distribution"
        L <- list(original_series = as.zoo(original_errors[,i]), distribution = error_i)

@@ -1,4 +1,4 @@
-estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace = 1, iter.max = 200, eval.max = 1000), ...)
+estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace = 1, iter.max = 200, eval.max = 1000), autodiff = FALSE, ...)
 {
   env <- object$vets_env
   env$loglik <- 1
@@ -17,34 +17,47 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
   # Need:
   # 1. Scaling for regressors
   # 2. Parameter transformation for unconstrained optimization
-  if (solver == "optim") {
-    sol <- optim(par = pars, fn = likfun, method = "L-BFGS-B", lower = lb, upper = ub, control = control, env = env)
-    pars <- sol$par
-    llh <- sol$value
-  } else if (solver == "nlminb") {
-    sol <- nlminb(start = pars, objective = likfun, control = control, lower = lb, upper = ub, env = env)
-    pars <- sol$par
-    llh <- sol$objective
-  } else if (solver == "solnp") {
-    sol <- solnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env)
-    pars <- sol$pars
-    llh <- tail(sol$values, 1)
-  } else if (solver == "gosolnp") {
-      sol <- gosolnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env, ...)
+  hessian <- NULL
+  gradient <- NULL
+  if (autodiff) {
+    solver <- match.arg(solver[1], choices = c("nlminb","optim"))
+    opt <- estimate_ad(object, solver = solver, control = control, ...)
+    pars <- opt$pars
+    hessian <- opt$hessian
+    gradient <- opt$gradient
+    sol <- opt$sol
+    llh <- opt$llh
+  } else {
+    solver <- match.arg(solver[1], choices = c("nlminb","optim","solnp","gosolnp","nloptr"))
+    if (solver == "optim") {
+      sol <- optim(par = pars, fn = likfun, method = "L-BFGS-B", lower = lb, upper = ub, control = control, env = env)
+      pars <- sol$par
+      llh <- sol$value
+    } else if (solver == "nlminb") {
+      sol <- nlminb(start = pars, objective = likfun, control = control, lower = lb, upper = ub, env = env)
+      pars <- sol$par
+      llh <- sol$objective
+    } else if (solver == "solnp") {
+      sol <- solnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env)
       pars <- sol$pars
       llh <- tail(sol$values, 1)
-  } else if (solver == "nloptr") {
-    sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_GN_MLSL_LDS", xtol_rel = 1e-8, maxeval = 1000, maxtime = 60*2,
-                                                                                       local_opts = list(algorithm = "NLOPT_LN_NELDERMEAD"), print_level = 0))
-    pars <- sol$solution
-    if (is.null(control$maxeval)) maxeval <- 2000 else maxeval <- control$maxeval
-    if (is.null(control$xtol_rel)) xtol_rel <- 1e-8 else xtol_rel <- control$xtol_rel
-    sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_LN_COBYLA", maxeval = maxeval, xtol_rel = xtol_rel, print_level = as.integer(control$trace)))
-    pars <- sol$solution
-    llh <- sol$objective
-    sol$par <- pars
-  } else {
-    stop("\nunrecognized solver")
+    } else if (solver == "gosolnp") {
+        sol <- gosolnp(pars = pars, fun = likfun, control = control, LB = lb, UB = ub, env = env, ...)
+        pars <- sol$pars
+        llh <- tail(sol$values, 1)
+    } else if (solver == "nloptr") {
+      sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_GN_MLSL_LDS", xtol_rel = 1e-8, maxeval = 1000, maxtime = 60*2,
+                                                                                         local_opts = list(algorithm = "NLOPT_LN_NELDERMEAD"), print_level = 0))
+      pars <- sol$solution
+      if (is.null(control$maxeval)) maxeval <- 2000 else maxeval <- control$maxeval
+      if (is.null(control$xtol_rel)) xtol_rel <- 1e-8 else xtol_rel <- control$xtol_rel
+      sol <- nloptr(x0 = pars, eval_f = likfun, lb = lb, ub = ub, env = env, opts = list("algorithm" = "NLOPT_LN_COBYLA", maxeval = maxeval, xtol_rel = xtol_rel, print_level = as.integer(control$trace)))
+      pars <- sol$solution
+      llh <- sol$objective
+      sol$par <- pars
+    } else {
+      stop("\nunrecognized solver")
+    }
   }
   sol$elapsed <- difftime(Sys.time(), tic, "minutes")
   sol$negative_llh <- llh
@@ -59,7 +72,7 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
   object$vets_env$Amat <- filt$Amat
   object$vets_env$Fmat <- filt$Fmat
   object$vets_env$Gmat <- filt$Gmat
-  out <- list(fitted = fit, States = filt$States, Error = filt$Error[-1,], spec = object, opt = sol)
+  out <- list(fitted = fit, States = filt$States, Error = filt$Error[-1,], gradient = gradient, hessian = hessian, spec = object, opt = sol, autodiff = autodiff)
   class(out) <- "tsvets.estimate"
   return(out)
 }

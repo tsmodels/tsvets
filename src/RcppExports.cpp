@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // vets_cpp_llh_equicor
 Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
 RcppExport SEXP _tsvets_vets_cpp_llh_equicor(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
