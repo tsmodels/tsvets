@@ -1,3 +1,9 @@
+# 2022-02-07 v0.4.2 [AG]
+- Added aggregate option to the backtest function to allow backtesting with
+aggregation of predictions given a weight vector (making use of the 
+tsaggregate method). Prediction table appended with extra series 'Aggregate' in
+that case.
+
 # 2021-11-03 v0.4.1 [AG]
 - Added autodiff option in estimation function which calls the tsvetsad package.
 Currently optim (L-BFGS-B) and nlminb solvers supported for autodiff, and option

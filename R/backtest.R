@@ -1,5 +1,5 @@
 tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_orig)/2), end = NROW(object$target$y_orig),
-                                  h = 1, alpha = NULL, cores = 1, save_output = FALSE, 
+                                  h = 1, alpha = NULL, aggregate = FALSE, weights = NULL, cores = 1, save_output = FALSE, 
                                   save_dir = "~/tmp/", solver = "nlminb", trace = FALSE, ...)
 {
     if (save_output) {
@@ -25,6 +25,14 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
     seqdates <- index(data[paste0(start_date,"/", end_date)])
     elapsed_time <- function(idx, end_date, start_date) {
         min(h, which(end_date == idx) - which(start_date == idx))
+    }
+    if (aggregate) {
+        if (is.null(aggregate)) {
+            stop("\nweights cannot be NULL when aggregate is TRUE")
+        }
+        weights <- as.numeric(weights)
+        if (length(weights) != ncol(data)) stop("\nweights must be a vector of
+                                                length equal to ncol data.")
     }
     
     # setup backtest indices
@@ -79,6 +87,13 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
                                lambda_upper = 1, dependence = object$dependence$type, cores = 1)
         mod <- estimate(spec, solver = solver, ...)
         p <- predict(mod, h = horizon[i], newxreg = xreg_test, forc_dates = index(y_test))
+        if (aggregate) {
+            ap <- tsaggregate(p, weights = weights)
+            dp <- data.table(series = "Aggregate", Level = list(), Slope = list(), Seasonal = list(), X = list(), Error = list(), Predicted = list(ap))
+            p$prediction_table <- rbind(p$prediction_table, dp)
+            y_test <- cbind(y_test, xts(coredata(y_test) %*% weights, index(y_test)))
+            colnames(y_test)[ncol(y_test)] <- "Aggregate"
+        }
         if (save_output) {
             saveRDS(mod, file = paste0(save_dir,"/model_", seqdates[i], ".rds"))
             saveRDS(p, file = paste0(save_dir,"/predict_", seqdates[i], ".rds"))
