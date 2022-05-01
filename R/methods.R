@@ -31,7 +31,7 @@ coef.tsvets.estimate = function(object, ...)
     return(pars)
 }
 
-tsdecompose.tsvets.estimate <- function(object, ...)
+tsdecompose.tsvets.estimate <- function(object, simplify = FALSE, ...)
 {
     Level <- xts(object$States[-1, 1:object$spec$vets_env$model[2]], object$spec$target$index)
     colnames(Level) <- paste0("Level[",object$spec$target$y_names,"]")
@@ -62,7 +62,13 @@ tsdecompose.tsvets.estimate <- function(object, ...)
     } else {
         X <- NULL
     }
-    L <- list(Level = Level, Slope = Slope, Seasonal = Seasonal, X = X)
+    if (simplify) {
+        Trend <- Level
+        if (!is.null(Slope)) Trend <- Trend + Slope
+        L <- list(Trend = Trend, Seasonal = Seasonal, X = X, Irregular = residuals(object, raw = TRUE))
+    } else {
+        L <- list(Level = Level, Slope = Slope, Seasonal = Seasonal, X = X, Irregular = residuals(object, raw = TRUE))
+    }
     return(L)
 }
 
@@ -121,8 +127,6 @@ tsdecompose.tsvets.estimate <- function(object, ...)
     return(L)
 }
 
-
-
 .tsdecompose_simulate <- function(x, i, object, sim_dates, ...)
 {
     n <- NCOL(object$spec$target$y_orig)
@@ -165,13 +169,13 @@ tsdecompose.tsvets.estimate <- function(object, ...)
 tscov.tsvets.estimate = function(object, ...)
 {
     # remove any missing values
-    E <- object$Error[as.logical(object$spec$target$good_index),]
+    E <- object$Error[as.logical(object$spec$target$good_index),,drop = F]
     if (object$spec$dependence$type == "equicorrelation") {
         rho <- object$opt$par[length(object$opt$par)]
         I <- diag(object$spec$vets_env$model[2])
         one <- matrix(1, object$spec$vets_env$model[2], object$spec$vets_env$model[2])
         R <- (1 - rho)*I + rho*one
-        v <- diag(apply(E, 2, sd))
+        v <- diag(apply(E, 2, sd), ncol(E), ncol(E))
         C <-  v %*% R %*% t(v)
     } else if (object$spec$dependence$type == "shrinkage") {
         rho <- object$opt$par[length(object$opt$par)]
@@ -180,7 +184,7 @@ tscov.tsvets.estimate = function(object, ...)
         C <- (1 - rho) * S + rho * sum(diag(S))/n * diag(1,n,n)
     } else if (object$spec$dependence$type == "diagonal") {
         # ToDo: need a seperate one for the diagonal
-        C <- diag(apply(E, 2, var))
+        C <- diag(apply(E, 2, var), ncol(E), ncol(E))
     } else {
         C <- cov(E)
     }
@@ -190,7 +194,7 @@ tscov.tsvets.estimate = function(object, ...)
 
 tscor.tsvets.estimate = function(object, ...)
 {
-    E <- object$Error[as.logical(object$spec$target$good_index),]
+    E <- object$Error[as.logical(object$spec$target$good_index),,drop = FALSE]
     if (object$spec$dependence$type == "equicorrelation") {
         rho <- object$opt$par[length(object$opt$par)]
         I <- diag(object$spec$vets_env$model[2])
@@ -530,7 +534,11 @@ plot.tsvets.predict = function(x, y = NULL, series = 1, n_original = NULL, ...)
 
 tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = FALSE, ...)
 {
-    lambda <- sapply(object$spec$transform, function(x) x$lambda)
+    if (is.null(object$spec$transform[[1]])) {
+        lambda <- rep(1, ncol(object$fitted))
+    } else {
+        lambda <- sapply(object$spec$transform, function(x) x$lambda)
+    }
     condition_transform <- is.null(object$spec$transform[[1]]) | (all(lambda == 0) | all(lambda == 1))
     condition_homogeneous <- object$spec$model$level == "common" & object$spec$model$slope %in% c("none","common") & object$spec$model$seasonal %in% c("none","common") & object$spec$model$damped %in% c("none","common")
     condition_model_return <- all(condition_transform, condition_homogeneous)
@@ -566,10 +574,16 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
             xreg_include <- NULL
         }
         spec <- vets_modelspec(actual, level = "common", slope = object$spec$model$slope, damped = object$spec$model$damped, 
-                               seasonal = object$spec$model$seasonal, frequency = object$spec$target$frequency, dependence = "diagonal", 
-                               lambda = object$spec$transform$lambda[1], xreg = xreg, xreg_include = xreg_include)
+                               seasonal = object$spec$model$seasonal, frequency = object$spec$target$frequency, 
+                               dependence = "diagonal", lambda = lambda[1], 
+                               xreg = xreg, xreg_include = xreg_include)
         xseed <- object$spec$vets_env$init_states %*% weights
+        # adjust the initial states in the Amat matrix
+        spec$vets_env$Amat[,(ncol(spec$vets_env$Amat) - NROW(xseed) + 1):ncol(spec$vets_env$Amat)] <- xseed
         spec$vets_env$States[,1] <- xseed[1:NROW(spec$vets_env$States)]
+        spec$vets_env$good <- t(spec$target$good_matrix)
+        spec$vets_env$selection <- spec$target$good_index
+        spec$vets_env$ymat <- na.fill(spec$vets_env$ymat, fill =  0)
         # calculate the variance
         V <- t(weights) %*% as.matrix(tscov(object)) %*% weights
         # reconstruct the estimate object
@@ -584,16 +598,22 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
             pars <- c(pars, beta)
         }
         filt <- vets_filter(pars, spec$vets_env)
-        if (!is.null(spec$transform$lambda)) {
-            fit <- spec$transform$inverse(filt$fitted[-1,,drop = FALSE], spec$transform$lambda)
-            fit <- xts(fit, spec$target$index)
+        states <- do.call(rbind, lapply(1:nrow(object$States), function(i){
+            matrix(matrix(object$States[i,], ncol = n, byrow = T) %*% weights, nrow = 1)
+        }))
+        if (!is.null(spec$transform)) {
+            fit <- do.call(cbind, lapply(1:ncol(object$fitted), function(i) spec$transform[[1]]$transform(object$fitted[,i], spec$transform[[1]]$lambda)))
+            fit <- fit %*% weights
+            e <- spec$transform[[1]]$transform(actual,spec$transform[[1]]$lambda)  - fit
+            fit <- xts(spec$transform[[1]]$inverse(fit, spec$transform[[1]]$lambda), spec$target$index)
         } else {
-            fit <- xts(filt$fitted[-1,], spec$target$index)
+            fit <- object$fitted %*% weights
+            e <- actual - fit
         }
         spec$vets_env$Amat <- filt$Amat
         spec$vets_env$Fmat <- filt$Fmat
         spec$vets_env$Gmat <- filt$Gmat
-        out <- list(fitted = fit, States = filt$States, Error = filt$Error[-1,,drop = FALSE], spec = spec, opt = list(pars = pars, negative_llh = NA), variance = V)
+        out <- list(fitted = fit, States = states, Error = e, spec = spec, opt = list(pars = pars, negative_llh = NA), variance = V)
         class(out) <- "tsvets.estimate"
         return(out)
     } else {
@@ -604,7 +624,7 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
                 colnames(out) <- c("aggregate","fitted")
                 return(out)
             } else {
-                if (all(object$spec$transform$lambda == 0)) {
+                if (all(lambda == 0)) {
                     fit <- exp(log(coredata(object$fitted)) %*% weights)
                 } else {
                     fit <- coredata(fitted(object)) %*% weights
@@ -642,8 +662,8 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
                     X <- NULL
                 }
                 # if lambda = 0 then we can add in logs and exponentiate back to get a multipicative model (e.g. Revenue = Volume x Price)
-                if (!is.null(object$spec$transform$lambda)) {
-                    if (all(object$spec$transform$lambda == 0)) {
+                if (!is.null(object$spec$transform)) {
+                    if (all(lambda == 0)) {
                         fit <- exp(log(coredata(object$fitted)) %*% weights)
                         Err <- (object$spec$target$y_orig/coredata(fitted(object)) - 1) %*% weights
                     } else {
@@ -673,7 +693,12 @@ tsaggregate.tsvets.predict <- function(object, weights = NULL, ...)
         if (length(as.numeric(weights)) != n) stop("\nweights should be a vector of length equal to ncol y.")   
         weights <- matrix(as.numeric(weights), ncol = 1, nrow = n)
     }
-    condition_transform <- is.null(object$spec$transform$lambda) | (all(object$spec$transform$lambda == 0) | all(object$spec$transform$lambda == 1))
+    if (is.null(object$spec$transform[[1]])) {
+        lambda <- rep(1, ncol(object$fitted))
+    } else {
+        lambda <- sapply(object$spec$transform, function(x) x$lambda)
+    }
+    condition_transform <- (all(lambda == 0) | all(lambda == 1))
     condition_homogeneous <- object$spec$model$level == "common" & object$spec$model$slope %in% c("none","common") & object$spec$model$seasonal %in% c("none","common") & object$spec$model$damped %in% c("none","common")
     
     if (!condition_homogeneous) {
@@ -682,7 +707,7 @@ tsaggregate.tsvets.predict <- function(object, weights = NULL, ...)
             date_class <- attr(object$prediction_table[1]$Predicted[[1]]$distribution, "date_class")
             array_predicted <- array(unlist(lapply(1:nrow(object$prediction_table), function(i) as.matrix(object$prediction_table[i]$Predicted[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$prediction_table)))
             array_predicted <- aperm(array_predicted, perm = c(1,3,2))
-            if (all(object$spec$transform$lambda == 0)) {
+            if (all(lambda == 0)) {
                 distribution <- apply(array_predicted, 3, function(x) exp(log(x) %*% weights))
                 original_series <- xts(exp(log(object$spec$target$y_orig) %*% weights), object$spec$target$index)
             } else {
@@ -712,9 +737,9 @@ tsaggregate.tsvets.predict <- function(object, weights = NULL, ...)
     } else {
         # homogenous model so we can aggregate the states
         if (condition_transform) {
-            if (!is.null(object$spec$transform$lambda)) {
+            if (!is.null(object$spec$transform[[1]])) {
                 # we can aggregate states for lambda = 0, 1, or NULL
-                if (all(object$spec$transform$lambda == 0)) {
+                if (all(lambda == 0)) {
                     f_dates <- colnames(object$prediction_table[1]$Predicted[[1]]$distribution)
                     date_class <- attr(object$prediction_table[1]$Predicted[[1]]$distribution, "date_class")
                     array_predicted <- array(unlist(lapply(1:nrow(object$prediction_table), function(i) as.matrix(object$prediction_table[i]$Predicted[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$prediction_table)))
@@ -724,7 +749,7 @@ tsaggregate.tsvets.predict <- function(object, weights = NULL, ...)
                     class(distribution) <- "tsmodel.distribution"
                     attr(distribution, "date_class") <- date_class
                     original_series <- xts(exp(log(object$spec$target$y_orig) %*% weights), object$spec$target$index)
-                } else if (all(object$spec$transform$lambda == 1)) {
+                } else if (all(lambda == 1)) {
                     f_dates <- colnames(object$prediction_table[1]$Predicted[[1]]$distribution)
                     date_class <- attr(object$prediction_table[1]$Predicted[[1]]$distribution, "date_class")
                     array_predicted <- array(unlist(lapply(1:nrow(object$prediction_table), function(i) as.matrix(object$prediction_table[i]$Predicted[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$prediction_table)))
@@ -854,7 +879,12 @@ tsaggregate.tsvets.simulate <- function(object, weights = NULL, ...)
         if (length(as.numeric(weights)) != n) stop("\nweights should be a vector of length equal to ncol y.")   
         weights <- matrix(as.numeric(weights), ncol = 1, nrow = n)
     }
-    condition_transform <- is.null(object$spec$transform$lambda) | (all(object$spec$transform$lambda == 0) | all(object$spec$transform$lambda == 1))
+    if (is.null(object$spec$transform[[1]])) {
+        lambda <- rep(1, ncol(object$fitted))
+    } else {
+        lambda <- sapply(object$spec$transform, function(x) x$lambda)
+    }
+    condition_transform <- (all(lambda == 0) | all(lambda == 1))
     condition_homogeneous <- object$spec$model$level == "common" & object$spec$model$slope %in% c("none","common") & object$spec$model$seasonal %in% c("none","common") & object$spec$model$damped %in% c("none","common")
     
     if (!condition_homogeneous) {
@@ -863,7 +893,7 @@ tsaggregate.tsvets.simulate <- function(object, weights = NULL, ...)
             date_class <- attr(object$simulation_table[1]$Simulated[[1]]$distribution, "date_class")
             array_predicted <- array(unlist(lapply(1:nrow(object$simulation_table), function(i) as.matrix(object$simulation_table[i]$Simulated[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$simulation_table)))
             array_predicted <- aperm(array_predicted, perm = c(1,3,2))
-            if (all(object$spec$transform$lambda == 0)) {
+            if (all(lambda == 0)) {
                 distribution <- apply(array_predicted, 3, function(x) exp(log(x) %*% weights))
             } else {
                 distribution <- apply(array_predicted, 3, function(x) x %*% weights)
@@ -890,9 +920,9 @@ tsaggregate.tsvets.simulate <- function(object, weights = NULL, ...)
     } else {
         # homogenous model so we can aggregate the states
         if (condition_transform) {
-            if (!is.null(object$spec$transform$lambda)) {
+            if (!is.null(object$spec$transform)) {
                 # we can aggregate states for lambda = 0, 1, or NULL
-                if (all(object$spec$transform$lambda == 0)) {
+                if (all(lambda == 0)) {
                     f_dates <- colnames(object$simulation_table[1]$Simulated[[1]]$distribution)
                     date_class <- attr(object$simulation_table[1]$Simulated[[1]]$distribution, "date_class")
                     array_predicted <- array(unlist(lapply(1:nrow(object$simulation_table), function(i) as.matrix(object$simulation_table[i]$Simulated[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$simulation_table)))
@@ -902,7 +932,7 @@ tsaggregate.tsvets.simulate <- function(object, weights = NULL, ...)
                     class(distribution) <- "tsmodel.distribution"
                     attr(distribution, "date_class") <- date_class
                     original_series <- xts(exp(log(object$spec$target$y_orig) %*% weights), object$spec$target$index)
-                } else if (all(object$spec$transform$lambda == 1)) {
+                } else if (all(lambda == 1)) {
                     f_dates <- colnames(object$simulation_table[1]$Simulated[[1]]$distribution)
                     date_class <- attr(object$simulation_table[1]$Simulated[[1]]$distribution, "date_class")
                     array_predicted <- array(unlist(lapply(1:nrow(object$simulation_table), function(i) as.matrix(object$simulation_table[i]$Simulated[[1]]$distribution))), dim = c(object$nsim, object$h, nrow(object$simulation_table)))

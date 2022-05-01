@@ -18,7 +18,7 @@ profile_fun <- function(sim, object, h, cores, trace, solver)
         colnames(sim_y) <- sim$simulation_table$series
         y <- xts(sim_y, as.POSIXct(rownames(sim_y)))
         yin <- y[1:(nrow(y) - h)]
-        spec <- tsspec(object, yin, lambda = object$spec$transform$lambda)
+        spec <- tsspec(object, yin)
         # add try catch
         mod <- try(estimate(spec, solver = solver), silent = TRUE)
         if (inherits(mod, 'try-error')) {

@@ -12,6 +12,7 @@ this case.
 - tsaggregate and tsbacktest not fully tested/fixed yet [on next update]
 - tsdecompose needs a simplify argument to align it with the other packages
 method
+- Changed the calling functionality for tstransform (using a list object)
 
 # 2022-02-07 v0.4.2 [AG]
 - Added aggregate option to the backtest function to allow backtesting with

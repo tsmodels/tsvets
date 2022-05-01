@@ -11,7 +11,7 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
         }
     }
     data <- xts(object$target$y_orig, object$target$index)
-    lambda <- object$transform$lambda
+    lambda <- sapply(object$transform, function(x) x$lambda)
     frequency <- object$target$frequency
     if (object$xreg$include_xreg) {
         use_xreg <- TRUE
@@ -70,7 +70,7 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
         spec <- vets_modelspec(y_train, level = object$model$level, slope = object$model$slope, 
                                damped = object$model$damped, seasonal = object$model$seasonal, 
                                xreg = xreg_train, xreg_include = xreg_g, group = object$model$group,
-                               frequency = object$target$frequency, lambda = NA, lower = 0, 
+                               frequency = object$target$frequency, lambda = lambda, lower = 0, 
                                upper = 1, dependence = object$dependence$type)
         mod <- estimate(spec, solver = solver, ...)
         p <- predict(mod, h = horizon[i], newxreg = xreg_test, forc_dates = index(y_test))

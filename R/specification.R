@@ -66,6 +66,14 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
             transform[[i]]$name <- "box-cox"
             y[,i] <- as.numeric(tmp)
         }
+      } else if (length(lambda) == 1 & !is.na(lambda)) {
+        transform <-  lapply(1:n, function(i) tstransform(method = transformation, lambda = lambda, frequency = frequency, lower = lower, upper = upper))
+        for (i in 1:n) {
+          tmp <- transform[[i]]$transform(y[,i], lambda = lambda, frequency = frequency, lower = lower, upper = upper)
+          transform[[i]]$lambda <- unname(attr(tmp,"lambda"))
+          transform[[i]]$name <- "box-cox"
+          y[,i] <- as.numeric(tmp)
+        }
       }
     } else {
       transform <-  lapply(1:n, function(i) tstransform(method = transformation, lower = lower, upper = upper))
