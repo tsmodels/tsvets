@@ -1,26 +1,19 @@
-tsprofile.tsvets.estimate <- function(object, h = 1, nsim = 100, seed = NULL, cores = 1, trace = 0, solver = "nlminb", ...)
+tsprofile.tsvets.estimate <- function(object, h = 1, nsim = 100, seed = NULL, trace = FALSE, solver = "nlminb", ...)
 {
     sim <- simulate(object, seed = seed, nsim = nsim, h = NROW(object$spec$target$y_orig) + h)
-    profile <- profile_fun(sim, object, h, cores = cores, trace = trace, solver = solver)
+    profile <- profile_fun(sim, object, h, trace = trace, solver = solver)
     return(profile)
 }
 
 profile_fun <- function(sim, object, h, cores, trace, solver)
 {
-    cl <- makeCluster(cores)
-    registerDoSNOW(cl)
-    if (trace == 1) {
-        iterations <- nrow(sim$simulation_table)
-        pb <- txtProgressBar(max = iterations, style = 3)
-        progress <- function(n) setTxtProgressBar(pb, n)
-        opts <- list(progress = progress)
-    } else {
-        opts <- NULL
-    }
     n <- NCOL(object$spec$target$y)
-    i <- 1
+    if (trace) {
+        prog_trace <- progressor(nrow(sim$simulation_table))
+    }
     y_names <- object$spec$target$y_names
-    P <- foreach(i = 1:nrow(sim$simulation_table), .packages = c("tsmethods","tsvets","xts","data.table"), .options.snow = opts) %dopar% {
+    prof %<-% future_lapply(1:nrow(sim$simulation_table), function(i){
+        if (trace) prog_trace()
         sim_y <- do.call(cbind, lapply(1:n, function(j) sim$simulation_table$Simulated[[j]]$distribution[j,]))
         colnames(sim_y) <- sim$simulation_table$series
         y <- xts(sim_y, as.POSIXct(rownames(sim_y)))
@@ -39,22 +32,17 @@ profile_fun <- function(sim, object, h, cores, trace, solver)
         })
         L2 <- rbindlist(L2)
         return(list(L1 = L1, L2 = L2))
-    }
-    C <- rbindlist(lapply(1:length(P), function(i) P[[i]]$L1))
-    M <- rbindlist(lapply(1:length(P), function(i) P[[i]]$L2))
+    }, future.packages = c("tsmethods","tsvets","xts","data.table"), future.seed = TRUE)
+    prof <- eval(prof)
+    C <- rbindlist(lapply(1:length(prof), function(i) prof[[i]]$L1))
+    M <- rbindlist(lapply(1:length(prof), function(i) prof[[i]]$L2))
     
-    if (trace == 1) {
-        close(pb)
-    }
-    stopCluster(cl)
     Actual <- NULL
     Predicted <- NULL
     Simulation <- NULL
     # create distribution for all performance metrics
     stats_distribution <- M[,list(MAPE = mape(Actual, Predicted), MSLRE = mslre(Actual, Predicted), 
                                  BIAS = bias(Actual, Predicted)), by = c("Series","Horizon","Simulation")]
-    coef_distribution <- C
-    
     L <- list(coef = C, true.coef = coef(object), stats_table = stats_distribution)
     return(L)
 }

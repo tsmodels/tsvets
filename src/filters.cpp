@@ -4,7 +4,8 @@ using namespace Rcpp;
 // [[Rcpp::depends(RcppArmadillo,RcppDist)]]
 // [[Rcpp::plugins(cpp14)]]
 // [[Rcpp::export]]
-Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta)
+Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, 
+                                arma::mat Y, arma::mat X, arma::mat beta, arma::mat good, arma::vec select)
 {
   // model: time[t] series[n] xreg[0,1] rho (correlation)
     try {
@@ -16,7 +17,7 @@ Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_ma
         arma::mat GA_mat = Gmat * Amat;
 
         arma::mat Error = arma::zeros(Y.n_rows, Y.n_cols-1);
-
+        arma::mat Aux = arma::zeros(Y.n_rows, select.n_elem);
         // check stability condition
 
         arma::mat Cond = Fmat - GA_mat * Hmat;
@@ -31,27 +32,34 @@ Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_ma
                                                    Rcpp::Named("condition") = 1);
             return(output);
         } else {
+            int kselect = 0;
             for (int i = 1; i < t; i++) {
                 arma::vec Yhat = Hmat * States.col(i-1);
 
                 if (use_x == 1) {
                     Yhat += beta * X.col(i);
                 }
-                
                 Error.col(i-1) = Y.col(i) - Yhat;
+                // zero out the errors of missing data
+                Error.col(i-1) = Error.col(i-1) % good.col(i-1);
+                if (select(i - 1) == 1) {
+                  // select non missing data errors
+                  Aux.col(kselect) =  Error.col(i-1);
+                  kselect+=1;
+                }
                 States.col(i) = Fmat * States.col(i-1) + GA_mat * Error.col(i-1);
             }
-
+            Aux = Aux.t();
             Error = Error.t();
-
-            arma::rowvec Sig = arma::stddev(Error, 0, 0);
+            // select complete non missingness matrix
+            arma::rowvec Sig = arma::stddev(Aux, 0, 0);
             arma::mat S = equicorrelation(Sig, n, rho);
 
             arma::vec eigvalS;
             arma::mat eigvecS;
             arma::eig_sym(eigvalS, eigvecS, S);
 
-            arma::mat E = arma::pow(Error * eigvecS, 2);
+            arma::mat E = arma::pow(Aux * eigvecS, 2);
             double sL = arma::accu( E * (1.0/eigvalS) );
 
             double ldet = arma::accu(arma::log(eigvalS));
@@ -74,7 +82,8 @@ Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_ma
 }
 
 // [[Rcpp::export]]
-Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta)
+Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, 
+                                 arma::mat X, arma::mat beta, arma::mat good, arma::vec select)
 {
     // model: time[t] series[n] xreg[0,1]
     try {
@@ -85,7 +94,7 @@ Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_m
         arma::mat GA_mat = Gmat * Amat;
 
         arma::mat Error = arma::zeros(Y.n_rows, Y.n_cols-1);
-        
+        arma::mat Aux = arma::zeros(Y.n_rows, select.n_elem);
         // check stability condition
 
         arma::mat Cond = Fmat - GA_mat * Hmat;
@@ -101,6 +110,7 @@ Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_m
                                                    Rcpp::Named("condition") = 1);
             return(output);
         } else {
+            int kselect = 0;
             for (int i = 1; i < t; i++) {
                 arma::vec Yhat = Hmat * States.col(i-1);
                 
@@ -109,12 +119,19 @@ Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_m
                 }
 
                 Error.col(i-1) = Y.col(i) - Yhat;
+                // zero out the errors of missing data
+                Error.col(i-1) = Error.col(i-1) % good.col(i-1);
+                if (select(i - 1) == 1) {
+                  // select non missing data errors
+                  Aux.col(kselect) =  Error.col(i-1);
+                  kselect+=1;
+                }
                 States.col(i) = Fmat * States.col(i-1) + GA_mat * Error.col(i-1);
             }
-
+            Aux = Aux.t();
             Error = Error.t();
 
-            arma::rowvec V = arma::var(Error, 0, 0);
+            arma::rowvec V = arma::var(Aux, 0, 0);
             arma::mat S = arma::diagmat(V);
             double ldet = arma::accu(arma::log(V));
             
@@ -124,7 +141,7 @@ Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_m
             arma::mat eigvecS;
             arma::eig_sym(eigvalS, eigvecS, S);
             
-            arma::mat E = arma::pow(Error * eigvecS, 2);
+            arma::mat E = arma::pow(Aux * eigvecS, 2);
             double sL = arma::accu( E * (1.0/eigvalS) );
             
             // Negative log likelihood
@@ -143,7 +160,8 @@ Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_m
 }
 
 // [[Rcpp::export]]
-Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta)
+Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, 
+                             arma::mat beta, arma::mat good, arma::vec select)
 {
   // model: time[t] series[n]
     try {
@@ -154,7 +172,7 @@ Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat F
         arma::mat GA_mat = Gmat * Amat;
 
         arma::mat Error = arma::zeros(Y.n_rows, Y.n_cols-1);
-        
+        arma::mat Aux = arma::zeros(Y.n_rows, select.n_elem);
         // check stability condition
 
         arma::mat Cond = Fmat - GA_mat * Hmat;
@@ -169,6 +187,7 @@ Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat F
                                                    Rcpp::Named("condition") = 1);
             return(output);
         } else {
+            int kselect = 0;
             for (int i = 1; i < t; i++) {
                 arma::vec Yhat = Hmat * States.col(i-1);
 
@@ -177,19 +196,26 @@ Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat F
                 }
                     
                 Error.col(i-1) = Y.col(i) - Yhat;
+                // zero out the errors of missing data
+                Error.col(i-1) = Error.col(i-1) % good.col(i-1);
+                if (select(i - 1) == 1) {
+                  // select non missing data errors
+                  Aux.col(kselect) =  Error.col(i-1);
+                  kselect+=1;
+                }
                 States.col(i) = Fmat * States.col(i-1) + GA_mat * Error.col(i-1);
             }
 
             Error = Error.t();
-            
+            Aux = Aux.t();
             // needs fixing
-            arma::mat S = arma::cov(Error, 0);
+            arma::mat S = arma::cov(Aux, 0);
             
             arma::vec eigvalS;
             arma::mat eigvecS;
             arma::eig_sym(eigvalS, eigvecS, S);
 
-            arma::mat E = arma::pow(Error * eigvecS, 2);
+            arma::mat E = arma::pow(Aux * eigvecS, 2);
             double sL = arma::accu( E * (1.0/eigvalS) );
 
             double ldet = arma::accu(arma::log(eigvalS));
@@ -212,7 +238,8 @@ Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat F
 }
 
 // [[Rcpp::export]]
-Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta)
+Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, 
+                               arma::mat X, arma::mat beta, arma::mat good, arma::vec select)
 {
   // model: time[t] series[n]
     try {
@@ -224,7 +251,7 @@ Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat
         arma::mat GA_mat = Gmat * Amat;
 
         arma::mat Error = arma::zeros(Y.n_rows, Y.n_cols-1);
-        
+        arma::mat Aux = arma::zeros(Y.n_rows, select.n_elem);
         // check stability condition
 
         arma::mat Cond = Fmat - GA_mat * Hmat;
@@ -239,27 +266,34 @@ Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat
                                                    Rcpp::Named("condition") = 1);
             return(output);
         } else {
+            int kselect = 0;
             for (int i = 1; i < t; i++) {
                 arma::vec Yhat = Hmat * States.col(i-1);
 
                 if (use_x == 1) {
                     Yhat += beta * X.col(i);
                 }
-                    
                 Error.col(i-1) = Y.col(i) - Yhat;
+                // zero out the errors of missing data
+                Error.col(i-1) = Error.col(i-1) % good.col(i-1);
+                if (select(i - 1) == 1) {
+                  // select non missing data errors
+                  Aux.col(kselect) =  Error.col(i-1);
+                  kselect+=1;
+                }
                 States.col(i) = Fmat * States.col(i-1) + GA_mat * Error.col(i-1);
             }
 
             Error = Error.t();
-            
+            Aux = Aux.t();
             // needs fixing
-            arma::mat S = shrinkcov(Error, n, rho);
+            arma::mat S = shrinkcov(Aux, n, rho);
             
             arma::vec eigvalS;
             arma::mat eigvecS;
             arma::eig_sym(eigvalS, eigvecS, S);
 
-            arma::mat E = arma::pow(Error * eigvecS, 2);
+            arma::mat E = arma::pow(Aux * eigvecS, 2);
             double sL = arma::accu( E * (1.0/eigvalS) );
 
             double ldet = arma::accu(arma::log(eigvalS));
@@ -282,7 +316,8 @@ Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat
 }
 
 // [[Rcpp::export]]
-Rcpp::List vets_cpp_filter(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta)
+Rcpp::List vets_cpp_filter(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, 
+                           arma::mat good)
 {
   // model: time[t] series[n] xreg[0,1] rho (correlation)
   try {
@@ -300,6 +335,8 @@ Rcpp::List vets_cpp_filter(NumericVector model, arma::mat Amat, arma::sp_mat Fma
         Yhat.col(i)+= beta * X.col(i);
       }
       Error.col(i) = Y.col(i) - Yhat.col(i);
+      // zero out the errors of missing data
+      Error.col(i) = Error.col(i) % good.col(i-1);
       States.col(i) = Fmat * States.col(i-1) +  Gmat * Amat * Error.col(i);
     }
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("fitted") = Yhat.t(),

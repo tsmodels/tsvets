@@ -3,12 +3,11 @@
 #define STRICT_R_HEADERS
 #include <RcppArmadillo.h>
 #include <RcppDist.h>
-
-Rcpp::List vets_cpp_llh_equicor(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat );
-Rcpp::List vets_cpp_llh_diagonal(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat );
-Rcpp::List vets_cpp_llh_full(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat );
-Rcpp::List vets_cpp_llh_shrink(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat );
-Rcpp::List vets_cpp_filter(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat );
+Rcpp::List vets_cpp_llh_equicor(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat , arma::mat, arma::vec);
+Rcpp::List vets_cpp_llh_diagonal(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat , arma::mat, arma::vec);
+Rcpp::List vets_cpp_llh_full(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat , arma::mat, arma::vec);
+Rcpp::List vets_cpp_llh_shrink(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat , arma::mat, arma::vec);
+Rcpp::List vets_cpp_filter(Rcpp::NumericVector , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::mat , arma::mat , arma::mat , arma::mat , arma::mat);
 Rcpp::List vets_cpp_predict(Rcpp::NumericVector , arma::mat , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::vec , arma::mat , arma::mat );
 Rcpp::List vets_cpp_simulate(Rcpp::NumericVector , arma::mat , arma::mat , arma::sp_mat , arma::sp_mat , arma::sp_mat , arma::vec , arma::mat , arma::mat );
 

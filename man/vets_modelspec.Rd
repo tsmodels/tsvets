@@ -12,9 +12,9 @@ vets_modelspec(y, level = c("constant", "diagonal", "common", "full",
 "full", "grouped"), damped = c("none", "common", "diagonal", 
 "full", "grouped"), seasonal = c("none", "common", "diagonal", 
 "full", "grouped"), group = NULL, xreg = NULL, xreg_include = NULL, 
-frequency = 1, lambda = NULL, lambda_lower = 0, lambda_upper = 1.5, 
-dependence = c("diagonal", "full", "equicorrelation", "shrinkage"), 
-cores = 1) 
+frequency = 1, transformation = "box-cox", 
+lambda = NULL, lower = 0, upper = 1, 
+dependence = c("diagonal", "full", "equicorrelation", "shrinkage")) 
 }
 \arguments{
 \item{y}{
@@ -48,6 +48,10 @@ variables sharing another grouped estimate would have values of
 (2,2,3,3,3). The index for group wise pooling starts at 2 and should
 be incremented for each new group added.
 }
+\item{transformation}{
+A valid transformation for y from the \dQuote{tstransform} function in the
+\dQuote{tsaux} package (currently box-cox or logit are available).
+}
 \item{lambda}{
 The Box Cox power transformation vector (see \code{box_cox}) in the
 \bold{tsaux} package. If a single NA, then it will calculate optimal lambda 
@@ -56,21 +60,17 @@ else if a vector of NA values it will calculate the individual Box Cox
 optimal parameters. Can also be either a single value (common lambda) or
 vector of values (individual lambda).
 }
-\item{lambda_lower}{
-Lower bound on Box Cox lambda transformation.
+\item{lower}{
+The lower bound for the transformation.
 }
-\item{lambda_upper}{
-Upper bound on Box Cox lambda transformation.
+\item{upper}{
+The upper bound for the transformation.
 }
 \item{frequency}{
 The seasonal frequency.
 }
 \item{dependence}{
 The dependence structure to impose.
-}
-\item{cores}{
-The number of cores to use. This is used to initialize the states
-of each series using the \code{tsets} package.
 }
 }
 \details{
@@ -81,7 +81,7 @@ with options for the dynamics of the states and dependence.
 An object of class \dQuote{tsvets.spec} with the following slots:\cr
 \item{target}{A list with original data series, the data series index and the sampling
 frequency}
-\item{transform}{A list with details on the Box Cox transformation}
+\item{transform}{A list with details on the transformation}
 \item{model}{A list with details the type of model dynamics}
 \item{dependence}{A list with details about the dependence structure}
 \item{xreg}{A list with details on the external regressors}

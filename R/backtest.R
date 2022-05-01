@@ -1,5 +1,5 @@
 tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_orig)/2), end = NROW(object$target$y_orig),
-                                  h = 1, alpha = NULL, aggregate = FALSE, weights = NULL, cores = 1, save_output = FALSE, 
+                                  h = 1, alpha = NULL, aggregate = FALSE, weights = NULL, save_output = FALSE, 
                                   save_dir = "~/tmp/", solver = "nlminb", trace = FALSE, ...)
 {
     if (save_output) {
@@ -50,24 +50,11 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
     } else {
         quantiles <- NULL
     }
-    i <- 1
-    cl <- makeCluster(cores)
-    registerDoSNOW(cl)
-    clusterExport(cl, "object", envir = environment())
-    clusterExport(cl, "data", envir = environment())
-    clusterExport(cl, "seqdates", envir = environment())
-    clusterExport(cl, "horizon", envir = environment())
-    clusterExport(cl, "use_xreg", envir = environment())
-    clusterExport(cl, "xreg", envir = environment())
     if (trace) {
-        iterations <- length(seqdates)
-        pb <- txtProgressBar(max = iterations, style = 3)
-        progress <- function(n) setTxtProgressBar(pb, n)
-        opts <- list(progress = progress)
-    } else {
-        opts <- NULL
+        prog_trace <- progressor(length(seqdates))
     }
-    b <- foreach(i = 1:length(seqdates), .packages = c("tsmethods","tsaux","xts","tsvets","data.table"), .options.snow = opts) %dopar% {
+    b %<-% future_lapply(1:length(seqdates), function(i) {
+        if (trace) prog_trace()
         y_train <- data[paste0("/", seqdates[i])]
         ix <- which(index(data) == seqdates[i])
         y_test <- data[(ix + 1):(ix + horizon[i])]
@@ -83,8 +70,8 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
         spec <- vets_modelspec(y_train, level = object$model$level, slope = object$model$slope, 
                                damped = object$model$damped, seasonal = object$model$seasonal, 
                                xreg = xreg_train, xreg_include = xreg_g, group = object$model$group,
-                               frequency = object$target$frequency, lambda = NA, lambda_lower = 0, 
-                               lambda_upper = 1, dependence = object$dependence$type, cores = 1)
+                               frequency = object$target$frequency, lambda = NA, lower = 0, 
+                               upper = 1, dependence = object$dependence$type)
         mod <- estimate(spec, solver = solver, ...)
         p <- predict(mod, h = horizon[i], newxreg = xreg_test, forc_dates = index(y_test))
         if (aggregate) {
@@ -124,11 +111,9 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
         out <- rbindlist(out)
         if (!is.null(quantiles)) out <- cbind(out, qp)
         return(out)
-    }
-    stopCluster(cl)
-    if (trace) {
-        close(pb)
-    }
+    }, future.packages = c("tsmethods","tsaux","xts","tsvets","data.table"), future.seed = TRUE) 
+    
+    b <- eval(b)
     b <- rbindlist(b)
     actual <- NULL
     forecast <- NULL

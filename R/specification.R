@@ -6,8 +6,8 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
                     damped = c("none","common","diagonal","full","grouped"), 
                     seasonal = c("none","common","diagonal","full","grouped"),
                     group = NULL, xreg = NULL, xreg_include = NULL, frequency = 1, 
-                    lambda = NULL, lambda_lower = 0, lambda_upper = 1.5, 
-                    dependence = c("diagonal","full","equicorrelation","shrinkage"), cores = 1)
+                    transformation = "box-cox", lambda = NULL, lower = 0, upper = 1, 
+                    dependence = c("diagonal","full","equicorrelation","shrinkage"))
 {
   # for xreg_include  this should be a matrix with rows (i) representing y and columns (j) the regressors and populated with
   # 1s or 0s depending on whether to apply a regressor (xreg_j) to y_i. Additionally, these can be numbered so that common
@@ -30,21 +30,67 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   }
   y_orig <- y
   period <- sampling_frequency(index(y))
-  lambdas <- rep(1, n)
-  if (!is.null(lambda)) {
-      if (all(!is.na(lambda)) & all(lambda == 1)) {
-          lambda <- NULL
-      }
+  if (length(transformation) != 1) {
+    if (!all(transformation == "box-cox") & !all(transformation == "logit")) {
+      stop("\ntransformation must be the same for all variables")
+    }
   }
+  transformation <- match.arg(transformation[1], c("logit","box-cox"))
+  if (transformation == "logit") {
+    lambda <- rep(0, n)
+  } else {
+    if (!is.null(lambda)) {
+      if (length(lambda) != 1 & length(lambda) != n) stop("\nlambda must be of length 1 or equal to the ncol of y")
+      if (all(!is.na(lambda)) & all(lambda == 1)) {
+        lambda <- NULL
+      }
+    }
+  }
+  transformation_model <- list(model = transformation, lower = lower, upper = upper)
   if (!is.null(lambda)) {
-    transform <- box_cox(lambda = lambda, lower = lambda_lower, upper = lambda_upper, multivariate = TRUE)
-    y <- transform$transform(y = y, frequency = frequency)
-    lambda <- attr(y, "lambda")
-    if (length(lambda) == 1) lambda <- rep(lambda, ncol(y))
-    transform$lambda <- lambda
+    if (transformation == "box-cox") {
+      if (length(lambda) == 1 && is.na(lambda)) {
+        tmp <- tstransform(method = transformation, lambda = lambda, lower = lower, upper = upper, frequency = frequency, multivariate = TRUE)
+        y <- tmp$transform(y)
+        lambdas <- unname(attr(y, "lambda"))
+        transform <-  lapply(1:n, function(i) tstransform(method = transformation, lambda = lambdas[i], frequency = frequency, lower = lower, upper = upper))
+        for (i in 1:n) {
+          transform[[i]]$lambda <- lambdas[i]
+          transform[[i]]$name <- "box-cox"
+        }
+      } else if (length(lambda) == n) {
+        transform <-  lapply(1:n, function(i) tstransform(method = transformation, lambda = lambda[i], frequency = frequency, lower = lower, upper = upper))
+        for (i in 1:n) {
+            tmp <- transform[[i]]$transform(y[,i], lambda = lambda[i], frequency = frequency, lower = lower, upper = upper)
+            transform[[i]]$lambda <- unname(attr(tmp,"lambda"))
+            transform[[i]]$name <- "box-cox"
+            y[,i] <- as.numeric(tmp)
+        }
+      }
+    } else {
+      transform <-  lapply(1:n, function(i) tstransform(method = transformation, lower = lower, upper = upper))
+      for (i in 1:n) {
+        transform[[i]]$lambda <- 0
+        tmp <- transform[[i]]$transform(y[,i])
+        transform[[i]]$name <- "logit"
+        y[,i] <- as.numeric(tmp)
+      }
+    }
   } else {
     transform <- NULL
   }
+  # check and index missing values
+  good_matrix <- matrix(1, ncol = ncol(y), nrow = nrow(y))
+  good_index <- rep(0, nrow(y))
+  if (any(is.na(y))) {
+    exc <- which(is.na(y), arr.ind = TRUE)
+    good_matrix[exc] <- NA
+    nm <- NROW(na.omit(good_matrix))
+    if (nm <= ncol(good_matrix)) stop("\nTotal common non-missingness is less than number of variables. Not currently supported.")
+    good_matrix <- na.fill(good_matrix, fill = 0)
+  }
+  good_index[which(rowSums(good_matrix) == ncol(y))] <- 1
+  
   level <- match.arg(arg = level[1], choices = c("constant","diagonal","common","full","grouped"))
   slope <- match.arg(arg = slope[1], choices = c("none","constant","common","diagonal","full","grouped"))
   damped <- match.arg(arg = damped[1], choices = c("none","common","diagonal","full","grouped"))
@@ -83,7 +129,6 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   if (slope != "none") {
     substr(model,2,2) <- "A"
     B <- ss_mat_B(L, slope, counter = k)
-
     if (!all(is.na(B$index))) {
       k <- max(B$index, na.rm = TRUE)
     }
@@ -101,7 +146,6 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   if (seasonal != "none") {
     substr(model,3,3) <- "A"
     K <- ss_mat_K(L, seasonal, counter = k)
-    
     AA <- rbind(AA, Matrix(K$parameters, L$frequency * L$n, L$n, byrow = TRUE))
     # AA <- t(AA)
     # AA[which(is.na(AA))] <- pars[i_index[which(i_index!=0)]]
@@ -137,7 +181,7 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   }
   
   # Initial states [currently we do not allow estimation of these as it explodes the number of parameters]
-  init_states <- ss_vets_init(y, model, damped = ifelse(damped == "none", FALSE, TRUE), frequency = frequency, cores = cores)
+  init_states <- ss_vets_init(y, model, damped = ifelse(damped == "none", FALSE, TRUE), frequency = frequency)
   # Remove indices now from y since they are no longer needed
   y <- coredata(y)
   y_index <- index(y_orig)
@@ -261,8 +305,9 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
   spec$target$frequency <- frequency
   spec$target$sampling <- period
   spec$target$y_names <- ynames
+  spec$target$good_matrix <- good_matrix
+  spec$target$good_index <- good_index
   spec$transform <- transform
-  spec$transform$lambda <- lambda
   spec$model$level <- level
   spec$model$slope <- slope
   spec$model$damped <- damped
@@ -298,9 +343,9 @@ tsspec.tsvets.estimate <- function(object, y = NULL, lambda = NULL, xreg = NULL,
     }
   }
   if (is.null(lambda)) {
-    lambda <- object$spec$transform$lambda
+    lambda <- sapply(1:length(object$spec$transform), function(i) object$spec$transform[[i]]$lambda)
   }
-  vets_modelspec(y, level = object$spec$model$level, 
+  spec <- vets_modelspec(y, level = object$spec$model$level, 
                  slope = object$spec$model$slope, 
                  damped = object$spec$model$damped, 
                  seasonal = object$spec$model$seasonal,
@@ -308,8 +353,9 @@ tsspec.tsvets.estimate <- function(object, y = NULL, lambda = NULL, xreg = NULL,
                  xreg = xreg, 
                  xreg_include = object$spec$xreg$xreg_include, 
                  frequency = object$spec$target$frequency, 
-                 lambda = lambda, lambda_lower = 0, lambda_upper = 1.5, 
-                 dependence = object$spec$dependence$type, 
-                 cores = 1)
+                 transformation = object$spec$transform[[1]]$name,
+                 lambda = lambda, lower = object$spec$transform[[1]]$lower, 
+                 upper = object$spec$transform[[1]]$upper, 
+                 dependence = object$spec$dependence$type)
 }
 

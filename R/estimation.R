@@ -6,6 +6,11 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
   pars <- pars + 1e-2
   lb <- env$lower_index
   ub <- env$upper_index
+  env$good <- t(object$target$good_matrix)
+  env$select <- t(object$target$good_index)
+  if (any(is.na(env$ymat))) {
+    env$ymat <- na.fill(env$ymat, fill = 0)
+  }
   # diagonal 2 is experimental for investigating the speed up from using a decomposed form
   # of the likelihood
   likfun <- switch(object$dependence$type,
@@ -63,7 +68,8 @@ estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace 
   sol$negative_llh <- llh
   filt <- vets_filter(pars, env)
   if (!is.null(object$transform)) {
-      fit <- object$transform$inverse(filt$fitted[-1,], object$transform$lambda)
+      # need the minverse
+      fit <- do.call(cbind, lapply(1:length(object$transform), function(i) object$transform[[i]]$inverse(filt$fitted[-1,i], object$transform[[i]]$lambda)))
   } else {
       fit <- filt$fitted[-1,]
   }
@@ -99,7 +105,9 @@ vets_llh_equicor <- function(pars, env)
   Hmat <- env$Hmat
   model <- env$model
   model[length(model)] <- pars[length(pars)]
-  f <- vets_cpp_llh_equicor(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta)
+  good <- env$good
+  select <- as.numeric(env$select)
+  f <- vets_cpp_llh_equicor(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta, good, select)
   if (!is.finite(f$loglik) | f$condition == 1 ) {
     llh <- get("loglik", env) + 0.1*(abs(get("loglik", env)))
   } else{
@@ -130,8 +138,10 @@ vets_llh_shrink <- function(pars, env)
   Gmat <- env$Gmat
   Hmat <- env$Hmat
   model <- env$model
+  good <- env$good
+  select <- as.numeric(env$select)
   model[length(model)] <- pars[length(pars)]
-  f <- vets_cpp_llh_shrink(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta)
+  f <- vets_cpp_llh_shrink(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta, good, select)
   if (!is.finite(f$loglik) | f$condition == 1 ) {
     llh <- get("loglik", env) + 0.1*(abs(get("loglik", env)))
   } else{
@@ -162,8 +172,10 @@ vets_llh_diag <- function(pars, env)
   }
   Gmat <- env$Gmat
   Hmat <- env$Hmat
+  good <- env$good
+  select <- as.numeric(env$select)
   model <- env$model
-  f <- vets_cpp_llh_diagonal(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta)
+  f <- vets_cpp_llh_diagonal(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta, good, select)
   if (!is.finite(f$loglik) | f$condition == 1 ) {
     llh <- get("loglik", env) + 0.2*(abs(get("loglik", env)))
   } else{
@@ -193,8 +205,10 @@ vets_llh_full <- function(pars, env)
   }
   Gmat <- env$Gmat
   Hmat <- env$Hmat
+  good <- env$good
+  select <- as.numeric(env$select)
   model <- env$model
-  f <- vets_cpp_llh_full(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta)
+  f <- vets_cpp_llh_full(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta, good, select)
   if (!is.finite(f$loglik) | f$condition == 1 ) {
     llh <- get("loglik", env) + 0.2*(abs(get("loglik", env)))
   } else{
@@ -223,8 +237,9 @@ vets_filter <- function(pars, env)
   }
   Gmat <- env$Gmat
   Hmat <- env$Hmat
+  good <- env$good
   model <- env$model
-  f <- vets_cpp_filter(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta)
+  f <- vets_cpp_filter(model, as.matrix(Amat), Fmat, Hmat, Gmat, States, Y, xreg, beta, good)
   f$Amat <- env$Amat
   f$Fmat <- Fmat
   f$Gmat <- Gmat

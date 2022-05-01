@@ -1,9 +1,10 @@
 residuals.tsvets.estimate = function(object, raw = FALSE, ...)
 {
     if (raw) {
-        if (!is.null(object$spec$transform$lambda)) {
+        if (!is.null(object$spec$transform[[1]]$lambda)) {
             actual <- object$spec$target$y
-            fitted <- object$spec$transform$transform(coredata(object$fitted), object$spec$transform$lambda) 
+            fitted <- do.call(cbind, lapply(1:length(object$spec$transform), function(i)
+                object$spec$transform[[i]]$transform(coredata(object$fitted)[,i], object$spec$transform[[i]]$lambda))) 
             r <- actual - fitted
         } else {
             r <- object$spec$target$y_orig - coredata(object$fitted)
@@ -163,20 +164,25 @@ tsdecompose.tsvets.estimate <- function(object, ...)
 
 tscov.tsvets.estimate = function(object, ...)
 {
+    # remove any missing values
+    E <- object$Error[as.logical(object$spec$target$good_index),]
     if (object$spec$dependence$type == "equicorrelation") {
         rho <- object$opt$par[length(object$opt$par)]
         I <- diag(object$spec$vets_env$model[2])
         one <- matrix(1, object$spec$vets_env$model[2], object$spec$vets_env$model[2])
         R <- (1 - rho)*I + rho*one
-        v <- diag(apply(object$Error, 2, sd))
+        v <- diag(apply(E, 2, sd))
         C <-  v %*% R %*% t(v)
     } else if (object$spec$dependence$type == "shrinkage") {
         rho <- object$opt$par[length(object$opt$par)]
-        S <- cov(object$Error)
-        n <- ncol(object$Error)
+        S <- cov(E)
+        n <- ncol(E)
         C <- (1 - rho) * S + rho * sum(diag(S))/n * diag(1,n,n)
+    } else if (object$spec$dependence$type == "diagonal") {
+        # ToDo: need a seperate one for the diagonal
+        C <- diag(apply(E, 2, var))
     } else {
-        C <- cov(object$Error)
+        C <- cov(E)
     }
     colnames(C) <- rownames(C) <- object$spec$target$y_names
     return(Matrix(C))
@@ -184,6 +190,7 @@ tscov.tsvets.estimate = function(object, ...)
 
 tscor.tsvets.estimate = function(object, ...)
 {
+    E <- object$Error[as.logical(object$spec$target$good_index),]
     if (object$spec$dependence$type == "equicorrelation") {
         rho <- object$opt$par[length(object$opt$par)]
         I <- diag(object$spec$vets_env$model[2])
@@ -191,12 +198,14 @@ tscor.tsvets.estimate = function(object, ...)
         R <- (1 - rho)*I + rho*one
     } else if (object$spec$dependence$type == "shrinkage") {
         rho <- object$opt$par[length(object$opt$par)]
-        S <- cov(object$Error)
-        n <- ncol(object$Error)
+        S <- cov(E)
+        n <- ncol(E)
         C <- (1 - rho) * S + rho * sum(diag(S))/n * diag(1,n,n)
         R <- cov2cor(C)
+    } else if (object$spec$dependence$type == "diagonal") {
+        R <- diag(1, ncol(E), ncol(E))
     } else {
-        R <- cor(object$Error)
+        R <- cor(E)
     }
     colnames(R) <- rownames(R) <- object$spec$target$y_names
     return(Matrix(R))
@@ -521,7 +530,8 @@ plot.tsvets.predict = function(x, y = NULL, series = 1, n_original = NULL, ...)
 
 tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = FALSE, ...)
 {
-    condition_transform <- is.null(object$spec$transform$lambda) | (all(object$spec$transform$lambda == 0) | all(object$spec$transform$lambda == 1))
+    lambda <- sapply(object$spec$transform, function(x) x$lambda)
+    condition_transform <- is.null(object$spec$transform[[1]]) | (all(lambda == 0) | all(lambda == 1))
     condition_homogeneous <- object$spec$model$level == "common" & object$spec$model$slope %in% c("none","common") & object$spec$model$seasonal %in% c("none","common") & object$spec$model$damped %in% c("none","common")
     condition_model_return <- all(condition_transform, condition_homogeneous)
     # condition guarantees that return_model can be used
@@ -535,9 +545,8 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
         if (length(as.numeric(weights)) != n) stop("\nweights should be a vector of length equal to ncol y.")   
         weights <- matrix(as.numeric(weights), ncol = 1, nrow = n)
     }
-    
-    if (!is.null(object$spec$transform$lambda)) {
-        if (all(object$spec$transform$lambda == 0)) {
+    if (!is.null(object$spec$transform[[1]])) {
+        if (all(lambda == 0)) {
             actual <- exp(object$spec$target$y %*% weights)
         } else {
             actual <- object$spec$target$y_orig %*% weights

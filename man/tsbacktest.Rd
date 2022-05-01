@@ -10,8 +10,7 @@ Generates an expanding window walk forward backtest.
 \usage{
 \method{tsbacktest}{tsvets.spec}(object, start = floor(NROW(object$target$y_orig)/2), 
 end = NROW(object$target$y_orig), h = 1, alpha = NULL, 
-aggregate = FALSE, weights = NULL, 
-cores = 1, save_output = FALSE, save_dir = "~/tmp/", 
+aggregate = FALSE, weights = NULL, save_output = FALSE, save_dir = "~/tmp/", 
 solver = "nlminb", trace = FALSE, ...)
 }
 \arguments{
@@ -41,10 +40,6 @@ Whether to create an aggregate series from the forecasts (see
 }
 \item{weights}{
 A numeric weights vector for the aggregation.
-}
-\item{cores}{
-The number of cores to use for parallel estimation. The package
-makes use of the doSNOW package.
 }
 \item{save_output}{
 Whether to save each estimated and predicted object.

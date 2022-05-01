@@ -65,9 +65,9 @@ predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000,
     E <- aperm(f$Error, map = list(3,2,1))
     States <- aperm(f$States, list(3,2,1))
     forc_dates <- as.character(forc_dates)
-    if (!is.null(object$spec$transform$lambda)) {
+    if (!is.null(object$spec$transform[[1]])) {
         for (i in 1:dim(Y)[3]) {
-            Y[,,i] <- box_cox_inverse(Y[,,i], object$spec$transform$lambda[i])
+            Y[,,i] <- object$spec$transform[[i]]$inverse(Y[,,i], object$spec$transform[[i]]$lambda)
         }
     }
     original_errors <- residuals(object, raw = TRUE)

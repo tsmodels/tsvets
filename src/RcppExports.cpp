@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // vets_cpp_llh_equicor
-Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
-RcppExport SEXP _tsvets_vets_cpp_llh_equicor(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
+Rcpp::List vets_cpp_llh_equicor(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, arma::mat good, arma::vec select);
+RcppExport SEXP _tsvets_vets_cpp_llh_equicor(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP goodSEXP, SEXP selectSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,13 +26,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta(betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_equicor(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta));
+    Rcpp::traits::input_parameter< arma::mat >::type good(goodSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type select(selectSEXP);
+    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_equicor(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta, good, select));
     return rcpp_result_gen;
 END_RCPP
 }
 // vets_cpp_llh_diagonal
-Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
-RcppExport SEXP _tsvets_vets_cpp_llh_diagonal(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
+Rcpp::List vets_cpp_llh_diagonal(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, arma::mat good, arma::vec select);
+RcppExport SEXP _tsvets_vets_cpp_llh_diagonal(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP goodSEXP, SEXP selectSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -45,13 +47,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta(betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_diagonal(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta));
+    Rcpp::traits::input_parameter< arma::mat >::type good(goodSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type select(selectSEXP);
+    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_diagonal(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta, good, select));
     return rcpp_result_gen;
 END_RCPP
 }
 // vets_cpp_llh_full
-Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
-RcppExport SEXP _tsvets_vets_cpp_llh_full(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
+Rcpp::List vets_cpp_llh_full(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, arma::mat good, arma::vec select);
+RcppExport SEXP _tsvets_vets_cpp_llh_full(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP goodSEXP, SEXP selectSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -64,13 +68,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta(betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_full(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta));
+    Rcpp::traits::input_parameter< arma::mat >::type good(goodSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type select(selectSEXP);
+    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_full(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta, good, select));
     return rcpp_result_gen;
 END_RCPP
 }
 // vets_cpp_llh_shrink
-Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
-RcppExport SEXP _tsvets_vets_cpp_llh_shrink(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
+Rcpp::List vets_cpp_llh_shrink(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, arma::mat good, arma::vec select);
+RcppExport SEXP _tsvets_vets_cpp_llh_shrink(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP goodSEXP, SEXP selectSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -83,13 +89,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta(betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_shrink(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta));
+    Rcpp::traits::input_parameter< arma::mat >::type good(goodSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type select(selectSEXP);
+    rcpp_result_gen = Rcpp::wrap(vets_cpp_llh_shrink(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta, good, select));
     return rcpp_result_gen;
 END_RCPP
 }
 // vets_cpp_filter
-Rcpp::List vets_cpp_filter(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta);
-RcppExport SEXP _tsvets_vets_cpp_filter(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP) {
+Rcpp::List vets_cpp_filter(NumericVector model, arma::mat Amat, arma::sp_mat Fmat, arma::sp_mat Hmat, arma::sp_mat Gmat, arma::mat States, arma::mat Y, arma::mat X, arma::mat beta, arma::mat good);
+RcppExport SEXP _tsvets_vets_cpp_filter(SEXP modelSEXP, SEXP AmatSEXP, SEXP FmatSEXP, SEXP HmatSEXP, SEXP GmatSEXP, SEXP StatesSEXP, SEXP YSEXP, SEXP XSEXP, SEXP betaSEXP, SEXP goodSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -102,7 +110,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta(betaSEXP);
-    rcpp_result_gen = Rcpp::wrap(vets_cpp_filter(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta));
+    Rcpp::traits::input_parameter< arma::mat >::type good(goodSEXP);
+    rcpp_result_gen = Rcpp::wrap(vets_cpp_filter(model, Amat, Fmat, Hmat, Gmat, States, Y, X, beta, good));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -146,11 +155,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tsvets_vets_cpp_llh_equicor", (DL_FUNC) &_tsvets_vets_cpp_llh_equicor, 9},
-    {"_tsvets_vets_cpp_llh_diagonal", (DL_FUNC) &_tsvets_vets_cpp_llh_diagonal, 9},
-    {"_tsvets_vets_cpp_llh_full", (DL_FUNC) &_tsvets_vets_cpp_llh_full, 9},
-    {"_tsvets_vets_cpp_llh_shrink", (DL_FUNC) &_tsvets_vets_cpp_llh_shrink, 9},
-    {"_tsvets_vets_cpp_filter", (DL_FUNC) &_tsvets_vets_cpp_filter, 9},
+    {"_tsvets_vets_cpp_llh_equicor", (DL_FUNC) &_tsvets_vets_cpp_llh_equicor, 11},
+    {"_tsvets_vets_cpp_llh_diagonal", (DL_FUNC) &_tsvets_vets_cpp_llh_diagonal, 11},
+    {"_tsvets_vets_cpp_llh_full", (DL_FUNC) &_tsvets_vets_cpp_llh_full, 11},
+    {"_tsvets_vets_cpp_llh_shrink", (DL_FUNC) &_tsvets_vets_cpp_llh_shrink, 11},
+    {"_tsvets_vets_cpp_filter", (DL_FUNC) &_tsvets_vets_cpp_filter, 10},
     {"_tsvets_vets_cpp_predict", (DL_FUNC) &_tsvets_vets_cpp_predict, 9},
     {"_tsvets_vets_cpp_simulate", (DL_FUNC) &_tsvets_vets_cpp_simulate, 9},
     {NULL, NULL, 0}

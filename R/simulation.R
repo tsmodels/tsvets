@@ -50,7 +50,7 @@ simulate.tsvets.estimate <- function(object, nsim = 1, seed = NULL, h = NULL, ne
     date_class <- attr(object$spec$target$sampling, "date_class")
     
     n <- ncol(object$Error)
-    innov <- object$Error
+    innov <- na.omit(object$Error)
     innov_index <- 1:nrow(innov)
     E <- array(0, dim = c(n, h + 1, nsim))
     S <- tscov(object)
@@ -85,9 +85,9 @@ simulate.tsvets.estimate <- function(object, nsim = 1, seed = NULL, h = NULL, ne
     Y <- aperm(f$Y, map = list(3,2,1))
     States <- aperm(f$States, list(3,2,1))
     sim_dates <- as.character(sim_dates)
-    if (!is.null(object$spec$transform$lambda)) {
+    if (!is.null(object$spec$transform[[1]])) {
         for (i in 1:dim(Y)[3]) {
-            Y[,,i] <- box_cox_inverse(Y[,,i], object$spec$transform$lambda[i])
+            Y[,,i] <- object$spec$transform[[i]]$inverse(Y[,,i], lambda = object$spec$transform[[i]]$lambda)
         }
     }
     out <- lapply(1:n, function(i){

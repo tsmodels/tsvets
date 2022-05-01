@@ -12,6 +12,17 @@ tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
             return(object)
         }
     }
+    # check for missingness
+    good_matrix <- matrix(1, ncol = ncol(y), nrow = nrow(y))
+    good_index <- rep(0, nrow(y))
+    if (any(is.na(y))) {
+        exc <- which(is.na(y), arr.ind = TRUE)
+        good_matrix[exc] <- NA
+        nm <- NROW(na.omit(good_matrix))
+        good_matrix <- na.fill(good_matrix, fill = 0)
+    }
+    good_index[which(rowSums(good_matrix) == ncol(y))] <- 1
+    
     if (object$spec$xreg$include_xreg) {
         nx <- NCOL(object$spec$xreg$xreg)
         if (!is.null(newxreg)) {
@@ -39,8 +50,8 @@ tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
     }
     newindex <- index(y)
     yneworig <- y
-    if (!is.null(object$spec$transform)) {
-        y <- object$spec$transform$transform(y, object$spec$transform$lambda)
+    if (!is.null(object$spec$transform[[1]])) {
+        y <- do.call(cbind, lapply(1:length(object$spec$transform), function(i) object$spec$transform[[i]]$transform(y[,i], object$spec$transform[[i]]$lambda)))
     }
     xseed <- tail(object$States, 1)
     pars <- object$opt$par
@@ -50,15 +61,20 @@ tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
     env$States <- t(rbind(xseed, matrix(0, ncol = ncol(xseed), nrow = n)))
     env$xreg <- t(rbind(matrix(0, ncol = ncol(X), nrow = 1), X))
     env$model[1] <- n + 1
-    env$ymat <- t(rbind(matrix(0, ncol = ncol(y), nrow = 1), coredata(y)))
+    ygood <- y
+    ygood <- na.fill(ygood, fill = 0)
+    env$ymat <- t(rbind(matrix(0, ncol = ncol(y), nrow = 1), coredata(ygood)))
+    env$good <- t(good_matrix)
     f <- vets_filter(pars, env)
     # augment the original object and return back
-    if (!is.null(object$spec$transform)) {
-        y_fit <- xts(object$spec$transform$inverse(f$fitted[-1,], object$spec$transform$lambda), newindex)
+    if (!is.null(object$spec$transform[[1]])) {
+        y_fit <- do.call(cbind, lapply(1:NCOL(f$fitted), function(i){
+            xts(object$spec$transform[[i]]$inverse(f$fitted[-1,i], object$spec$transform[[i]]$lambda), newindex)
+        }))
     } else {
         y_fit <- xts(f$fitted[-1,], newindex)
     }
-    
+    colnames(y_fit) <- colnames(y)
     object$States <- rbind(object$States, f$States[-1,])
     object$fitted <- rbind(object$fitted, y_fit)
     object$Error <- rbind(object$Error, f$Error[-1,])

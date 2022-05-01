@@ -9,7 +9,7 @@ Profiling of model dynamics using simulation/estimation/prediction.
 }
 \usage{
 \method{tsprofile}{tsvets.estimate}(object, h = 1, nsim = 100,
-seed = NULL, cores = 1, trace = 0, solver = "nlminb", ...)
+seed = NULL, trace = FALSE, solver = "nlminb", ...)
 }
 \arguments{
 \item{object}{
@@ -24,9 +24,6 @@ The number of paths to generate.
 \item{seed}{
 An object specifying if and how the random number generator should be initialized.
 See the simulate documentation for more details.
-}
-\item{cores}{
-The number of cores to use for parallel estimation of the paths.
 }
 \item{trace}{
 Whether to show a progress bar for the estimation of the paths.

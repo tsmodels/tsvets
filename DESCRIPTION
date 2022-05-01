@@ -13,7 +13,7 @@ Description: Vector Exponential Smoothing Models.
 SystemRequirements: C++11, GNU make
 Depends: R (>= 3.5.0), Rcpp (>= 0.12.9), tsmethods
 LinkingTo: Rcpp (>= 0.12.9), RcppArmadillo, RcppDist
-Imports: methods, zoo, xts, tsaux, mvtnorm, MASS, MVN, Rsolnp, foreach, snow, doSNOW, doParallel, tsets, Matrix, data.table, viridis, corpcor, nloptr, tsvetsad
+Imports: methods, zoo, xts, tsaux, mvtnorm, MASS, MVN, Rsolnp, future, future.apply, progressr, tsets, Matrix, data.table, viridis, corpcor, nloptr, tsvetsad (>= 0.3.0)
 License: GPL-2
 Suggests: knitr
 Encoding: UTF-8
