@@ -1,7 +1,7 @@
 Package: tsvets
 Type: Package
 Title: Vector ETS Models
-Version: 0.4.2
+Version: 0.4.3
 Authors@R: c(person("Alexios", "Galanos", role = c("aut", "cre"),
     email = "alexios@4dscape.com"),
     person("James","Nesbit",role="ctb",
