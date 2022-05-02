@@ -6,7 +6,7 @@ Estimates a model given a specification object using maximum likelihood.
 }
 \usage{
 \method{estimate}{tsvets.spec}(object, solver = "nlminb", 
-control = list(trace = 1, iter.max = 200, eval.max = 1000), autodiff = FALSE, ...)
+control = list(trace = 0, iter.max = 200, eval.max = 1000), autodiff = FALSE, ...)
 }
 \arguments{
 \item{object}{

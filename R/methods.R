@@ -578,8 +578,9 @@ tsaggregate.tsvets.estimate <- function(object, weights = NULL, return_model = F
                                dependence = "diagonal", lambda = lambda[1], 
                                xreg = xreg, xreg_include = xreg_include)
         xseed <- object$spec$vets_env$init_states %*% weights
+        n_states <- NROW(spec$vets_env$States)
         # adjust the initial states in the Amat matrix
-        spec$vets_env$Amat[,(ncol(spec$vets_env$Amat) - NROW(xseed) + 1):ncol(spec$vets_env$Amat)] <- xseed
+        spec$vets_env$Amat[,(ncol(spec$vets_env$Amat) - n_states + 1):ncol(spec$vets_env$Amat)] <- xseed[1:n_states]
         spec$vets_env$States[,1] <- xseed[1:NROW(spec$vets_env$States)]
         spec$vets_env$good <- t(spec$target$good_matrix)
         spec$vets_env$selection <- spec$target$good_index
@@ -694,7 +695,7 @@ tsaggregate.tsvets.predict <- function(object, weights = NULL, ...)
         weights <- matrix(as.numeric(weights), ncol = 1, nrow = n)
     }
     if (is.null(object$spec$transform[[1]])) {
-        lambda <- rep(1, ncol(object$fitted))
+        lambda <- rep(1, NROW(object$prediction_table))
     } else {
         lambda <- sapply(object$spec$transform, function(x) x$lambda)
     }
@@ -880,7 +881,7 @@ tsaggregate.tsvets.simulate <- function(object, weights = NULL, ...)
         weights <- matrix(as.numeric(weights), ncol = 1, nrow = n)
     }
     if (is.null(object$spec$transform[[1]])) {
-        lambda <- rep(1, ncol(object$fitted))
+        lambda <- rep(1, NROW(object$simulation_table))
     } else {
         lambda <- sapply(object$spec$transform, function(x) x$lambda)
     }

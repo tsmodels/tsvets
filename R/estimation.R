@@ -1,4 +1,4 @@
-estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace = 1, iter.max = 200, eval.max = 1000), autodiff = FALSE, ...)
+estimate.tsvets.spec = function(object, solver = "nlminb", control = list(trace = 0, iter.max = 200, eval.max = 1000), autodiff = FALSE, ...)
 {
   env <- object$vets_env
   env$loglik <- 1
