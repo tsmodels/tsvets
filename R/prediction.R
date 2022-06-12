@@ -1,3 +1,29 @@
+#' Model Prediction
+#'
+#' @description Prediction function for class \dQuote{tsvets.estimate}.
+#' @param object an object of class \dQuote{tsvets.estimate}.
+#' @param h the forecast horizon.
+#' @param newxreg a matrix of external regressors in the forecast horizon.
+#' @param nsim the number of simulations to use for generating the simulated
+#' predictive distribution.
+#' @param forc_dates an optional vector of forecast dates equal to h. If NULL will
+#' use the implied periodicity of the data to generate a regular sequence of
+#' dates after the last available date in the data.
+#' @param init_states an optional vector of states to initialize the forecast.
+#' If NULL, will use the last available state from the estimated model.
+#' @param ... not currently used.
+#' @details Generates the predicted distribution of the vector Additive ETS 
+#' model simulating from the multivariate Normal distribution with covariance 
+#' based on the estimated model residuals.
+#' @return An object of class \dQuote{tsvets.predict} with most relevant output 
+#' a data.table which contains one row for each series and columns of 
+#' tsmodel.predict objects, one for the predicted values, and for each of the states.
+#' @aliases predict
+#' @method predict tsvets.estimate
+#' @rdname predict
+#' @export
+#'
+#'
 predict.tsvets.estimate <- function(object, h = 12, newxreg = NULL, nsim = 1000, forc_dates = NULL, init_states = NULL, ...)
 {
     if (!is.null(forc_dates)) {

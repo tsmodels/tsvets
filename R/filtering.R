@@ -1,3 +1,25 @@
+#' Online Model Filtering
+#'
+#' @description Online filter which updates the states and fitted values using
+#' new data.
+#' @param object an object of class \dQuote{tsvets.estimate}.
+#' @param y an xts matrix of new information related to y. The function checks
+#' whether y contains indices (dates) which are not in the passed object and
+#' only filters new information.
+#' @param newxreg An xts matrix of new information related to external regressors
+#' (if those were used in the original model estimated).
+#' @param ... not currently used.
+#' @details The new data is filtered (1 step ahead) using the last state of the
+#' object. Once this is complete, the object is updated with the new states
+#' and information so that the process can be continued on the same object as
+#' new information arrives.
+#' @return An object of class \dQuote{tsvets.estimate}.
+#' @aliases tsfilter
+#' @method tsfilter tsvets.estimate
+#' @rdname tsfilter
+#' @export
+#'
+#'
 tsfilter.tsvets.estimate <- function(object, y = NULL, newxreg = NULL, ...)
 {
     yold <- xts(object$spec$target$y_orig, object$spec$target$index)

@@ -1,15 +1,43 @@
+#' Walk Forward Model Backtest
+#'
+#' @description Generates an expanding window walk forward backtest.
+#' @param object an object of class \dQuote{tsvets.spec}.
+#' @param start numeric data index from which to start the backtest.
+#' @param end numeric data index on which to end the backtest. The backtest will
+#' end 1 period before that date in order to have at least 1 out of sample value
+#' to compare against.
+#' @param h forecast horizon. As the expanding window approaches the \dQuote{end},
+#' the horizon will automatically shrink to the number of available out of sample
+#' periods.
+#' @param alpha optional numeric vector of coverage rates for which to calculate
+#' the quantiles.
+#' @param aggregate whether to create an aggregate series from the forecasts 
+#' (see \code{\link{tsaggregate}} for details).
+#' @param weights numeric weights vector for the aggregation.
+#' @param solver solver to use.
+#' @param autodiff whether to use automatic differentiation for estimation.
+#' This makes use of the tsvetsad package.
+#' @param trace whether to show the progress bar. The user is expected to have
+#' set up appropriate handlers for this using the \dQuote{progressr} package.
+#' @param ... additional arguments passed to the \dQuote{auto_clean} function.
+#' @return A list with the following data.tables:
+#' \itemize{
+#' \item prediction : the backtest table with forecasts and actuals by series
+#' \item metrics: a summary performance table showing metrics by 
+#' forecast horizon and series
+#' }
+#' @note The function can use parallel functionality as long as the user has
+#' set up a \code{\link[future]{plan}} using the future package.
+#' @aliases tsbacktest
+#' @method tsbacktest tsvets.spec
+#' @rdname tsbacktest
+#' @export
+#'
+#'
 tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_orig)/2), end = NROW(object$target$y_orig),
-                                  h = 1, alpha = NULL, aggregate = FALSE, weights = NULL, save_output = FALSE, 
-                                  save_dir = "~/tmp/", solver = "nlminb", trace = FALSE, ...)
+                                  h = 1, alpha = NULL, aggregate = FALSE, weights = NULL, solver = "nlminb", 
+                                  trace = FALSE, autodiff = FALSE, ...)
 {
-    if (save_output) {
-        if (is.null(save_dir)) {
-            stop("save_dir cannot be NULL when save.output is TRUE")
-        }
-        if (!dir.exists(save_dir)) {
-            stop("save_dir does not exit. Create first and then resubmit")
-        }
-    }
     data <- xts(object$target$y_orig, object$target$index)
     lambda <- sapply(object$transform, function(x) x$lambda)
     frequency <- object$target$frequency
@@ -72,7 +100,7 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
                                xreg = xreg_train, xreg_include = xreg_g, group = object$model$group,
                                frequency = object$target$frequency, lambda = lambda, lower = 0, 
                                upper = 1, dependence = object$dependence$type)
-        mod <- estimate(spec, solver = solver, ...)
+        mod <- estimate(spec, solver = solver, autodiff = autodiff, ...)
         p <- predict(mod, h = horizon[i], newxreg = xreg_test, forc_dates = index(y_test))
         if (aggregate) {
             ap <- tsaggregate(p, weights = weights)
@@ -80,10 +108,6 @@ tsbacktest.tsvets.spec <- function(object, start = floor(NROW(object$target$y_or
             p$prediction_table <- rbind(p$prediction_table, dp)
             y_test <- cbind(y_test, xts(coredata(y_test) %*% weights, index(y_test)))
             colnames(y_test)[ncol(y_test)] <- "Aggregate"
-        }
-        if (save_output) {
-            saveRDS(mod, file = paste0(save_dir,"/model_", seqdates[i], ".rds"))
-            saveRDS(p, file = paste0(save_dir,"/predict_", seqdates[i], ".rds"))
         }
         if (!is.null(quantiles)) {
             qp <- lapply(1:nrow(p$prediction_table), function(j){

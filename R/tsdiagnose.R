@@ -1,3 +1,17 @@
+#' Model Diagnostics
+#'
+#' @description Creates a short summary of model based diagnostics.
+#' @param object an object of class \dQuote{tsvets.estimate}.
+#' @param ... not currently used.
+#' @return A list of tables (printed out and returned invisibly) with diagnostics 
+#' including the eigenvalues of the D matrix as well as Normality and 
+#' multivariate outlier tests.
+#' @aliases tsdiagnose
+#' @method tsdiagnose tsvets.estimate
+#' @rdname tsdiagnose
+#' @export
+#'
+#'
 tsdiagnose.tsvets.estimate <- function(object, ...)
 {
     Amat <- t(object$spec$vets_env$Amat[,object$spec$vets_env$Amat_index[1]:object$spec$vets_env$Amat_index[2]])

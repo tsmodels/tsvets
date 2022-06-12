@@ -1,6 +1,54 @@
-# extract matrices and fix parameters if required, replacing NA with fixed values and changing the indices
-# 1. add grouping options for parameters
-# 2. precompute matrices to pass to C++
+#' Model Specification
+#'
+#' @description Specifies an vector ETS model prior to estimation.
+#' @details The specification allows to specify a vector additive damped ETS 
+#' model with options for the dynamics of the states and dependence.
+#' @param y an xts matrix.
+#' @param level dynamics for the level component.
+#' @param slope dynamics for the slope component.
+#' @param damped dynamics for the dampening component.
+#' @param seasonal dynamics for the seasonal component.
+#' @param group a vector of indices denoting which group the series belongs to 
+#' (when using the grouped dynamics).
+#' @param xreg an xts matrix of external regressors.
+#' @param xreg_include a matrix of dimension ncol(y) by ncol(xreg) populated with 
+#' either 0, 1 or 2+ (0 = no beta, 1 = individual beta and 2 = grouped beta). 
+#' It is also possible to have group wise pooling. For instance 2 variables 
+#' sharing one pooled estimates, and 3 other variables sharing another grouped 
+#' estimate would have values of (2,2,3,3,3). The index for group wise pooling 
+#' starts at 2 and should be incremented for each new group added.
+#' @param transformation a valid transformation for y from the \dQuote{tstransform} 
+#' function in the \dQuote{tsaux} package (currently box-cox or logit are available).
+#' @param lambda the Box Cox power transformation vector (see \code{box_cox}) 
+#' in the \bold{tsaux} package. If a single NA, then it will calculate optimal 
+#' lambda based on the multivariate Box Cox approach of Velila (1993), else if a 
+#' vector of NA values it will calculate the individual Box Cox optimal parameters. 
+#' Can also be either a single value (common lambda) or vector of values 
+#' (individual lambda).
+#' @param lower lower bound for the transformation.
+#' @param upper upper bound for the transformation.
+#' @param frequency seasonal frequency of the series.
+#' @param dependence dependence structure to impose.
+#' @return An object of class \dQuote{tsvets.spec} with the following slots:\cr
+#' \item{target}{A list with original data series, the data series index and 
+#' the sampling frequency}
+#' \item{transform}{A list with details on the transformation}
+#' \item{model}{A list with details the type of model dynamics}
+#' \item{dependence}{A list with details about the dependence structure}
+#' \item{xreg}{A list with details on the external regressors}
+#' \item{vets_env}{An environment with pre-calculated state matrices and other 
+#' parameters which will be passed to the estimation routine}
+#' @references Athanasopoulos, G and de Silva, A. (2012),\emph{Multivariate 
+#' Exponential Smoothing for Forecasting Tourist Arrivals}, Journal of Travel 
+#' Research 51(5) 640–-652.\cr
+#' de Silva, A., R. Hyndman, and R. D. Snyder. (2010).\emph{The Vector Innovations 
+#' Structural Time Series Framework: A Simple Approach to Multivariate Forecasting}, 
+#' Statistical Modelling (10) 353--74.
+#' @aliases vets_modelspec
+#' @rdname vets_modelspec
+#' @export
+#'
+#'
 vets_modelspec = function(y, level = c("constant","diagonal","common","full","grouped"), 
                           slope = c("none","constant","common","diagonal","full","grouped"),
                     damped = c("none","common","diagonal","full","grouped"), 
@@ -331,7 +379,26 @@ vets_modelspec = function(y, level = c("constant","diagonal","common","full","gr
 }
 
 
-
+#' Model Specification Extractor
+#'
+#' @description Extracts a model specification (class \dQuote{tsvets.spec}) from
+#' an object of class \dQuote{tsvets.estimate}.
+#' @param object an object of class \dQuote{tsvets.estimate}.
+#' @param y an optional new xts vector.
+#' @param lambda an optional lambda parameter for the Box Cox transformation (if
+#' previously used).
+#' @param xreg an optional matrix of regressors.
+#' @param ... not currently used.
+#' @note This function is used by other functions in the package such as the
+#' backtest which requires rebuilding the specification for each re-estimation
+#' step with updated data but keeping all else equal.
+#' @return An object of class \dQuote{tsvets.spec}.
+#' @aliases tsspec
+#' @method tsspec tsvets.estimate
+#' @rdname tsspec
+#' @export
+#'
+#'
 tsspec.tsvets.estimate <- function(object, y = NULL, lambda = NULL, xreg = NULL, ...)
 {
   if (is.null(y)) {
@@ -365,5 +432,6 @@ tsspec.tsvets.estimate <- function(object, y = NULL, lambda = NULL, xreg = NULL,
                  lambda = lambda, lower = object$spec$transform[[1]]$lower, 
                  upper = object$spec$transform[[1]]$upper, 
                  dependence = object$spec$dependence$type)
+  return(spec)
 }
 

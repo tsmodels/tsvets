@@ -1,11 +1,40 @@
-tsprofile.tsvets.estimate <- function(object, h = 1, nsim = 100, seed = NULL, trace = FALSE, solver = "nlminb", ...)
+#' Model Simulation Based Profiling
+#'
+#' @description Profiling of model dynamics using simulation/estimation/prediction.
+#' @details The function profiles an estimated model by simulating and then 
+#' estimating multiple paths from the assumed DGP while leaving h values out for 
+#' prediction evaluation. Each simulated path is equal to the size of the original 
+#' dataset plus h additional values, and initialized with the initial state vector 
+#' from the model. A data.table matrix is returned with the distribution of the 
+#' coefficients from each path estimation as well as a stats table with the MAPE, 
+#' BIAS and MSLRE by horizon, simulation and series.
+#' @param object an object of class \dQuote{tsvets.estimate}.
+#' @param h the forecast horizon on which to evaluate performance metrics.
+#' @param nsim the number of paths to generate.
+#' @param seed an object specifying if and how the random number generator
+#' should be initialized. See the simulate documentation for more details.
+#' @param trace whether to show the progress bar. The user is expected to have
+#' set up appropriate handlers for this using the \dQuote{progressr} package.
+#' @param solver choice of solver to use for the estimation of the paths.
+#' @param autodiff whether to use automatic differentiation for estimation.
+#' This makes use of the tsvetsad package.
+#' @param ... not currently used.
+#' @note The function can use parallel functionality as long as the user has set
+#' up a \code{\link[future]{plan}} using the future package.
+#' @return An object of class \dQuote{tsvets.profile}.
+#' @aliases tsprofile
+#' @method tsprofile tsvets.estimate
+#' @rdname tsprofile
+#' @export
+#'
+tsprofile.tsvets.estimate <- function(object, h = 1, nsim = 100, seed = NULL, trace = FALSE, solver = "nlminb", autodiff = FALSE, ...)
 {
     sim <- simulate(object, seed = seed, nsim = nsim, h = NROW(object$spec$target$y_orig) + h)
-    profile <- profile_fun(sim, object, h, trace = trace, solver = solver)
+    profile <- profile_fun(sim, object, h, trace = trace, solver = solver, autodiff = autodiff)
     return(profile)
 }
 
-profile_fun <- function(sim, object, h, cores, trace, solver)
+profile_fun <- function(sim, object, h, cores, trace, solver, autodiff)
 {
     n <- NCOL(object$spec$target$y)
     if (trace) {
@@ -20,7 +49,7 @@ profile_fun <- function(sim, object, h, cores, trace, solver)
         yin <- y[1:(nrow(y) - h)]
         spec <- tsspec(object, yin)
         # add try catch
-        mod <- try(estimate(spec, solver = solver), silent = TRUE)
+        mod <- try(estimate(spec, solver = solver, autodiff = autodiff), silent = TRUE)
         if (inherits(mod, 'try-error')) {
             return(list(L1 = NULL, L2 = NULL))
         }
